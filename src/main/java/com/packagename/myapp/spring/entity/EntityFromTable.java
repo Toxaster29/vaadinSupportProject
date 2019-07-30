@@ -1,4 +1,4 @@
-package com.packagename.myapp.spring;
+package com.packagename.myapp.spring.entity;
 
 public class EntityFromTable {
 
