@@ -3,19 +3,18 @@ package com.packagename.myapp.spring;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.html.Label;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
+import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.upload.Upload;
 import com.vaadin.flow.component.upload.receivers.MemoryBuffer;
-import org.springframework.beans.factory.annotation.Autowired;
-
-import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.PWA;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.IOException;
 import java.io.InputStream;
 
 @Route
-@PWA(name = "Project Base for Vaadin Flow with Spring", shortName = "Project Base")
+@PWA(name = "Project for support this thing", shortName = "ProdSupport")
 public class MainView extends VerticalLayout {
 
     @Autowired
@@ -40,7 +39,6 @@ public class MainView extends VerticalLayout {
 
     }
 
-
     private void initFileUpload() {
         MemoryBuffer buffer = new MemoryBuffer();
         Upload upload = new Upload(buffer);
@@ -61,7 +59,7 @@ public class MainView extends VerticalLayout {
         try {
             excelParserService.readFromExcel(inputStream);
         } catch (IOException e) {
-            e.printStackTrace();
+            System.err.println(e.getMessage());
         }
         return null;
     }
