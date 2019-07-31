@@ -14,7 +14,6 @@ import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.upload.Upload;
 import com.vaadin.flow.component.upload.receivers.MemoryBuffer;
 import com.vaadin.flow.router.Route;
-import com.vaadin.flow.server.PWA;
 import com.vaadin.flow.server.StreamResource;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -24,9 +23,8 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
-@Route
-@PWA(name = "Project for support this thing", shortName = "ProdSupport")
-public class MainView extends VerticalLayout {
+@Route("contract")
+public class ContractView extends VerticalLayout {
 
     @Autowired
     private ExcelParserService excelParserService;
@@ -40,7 +38,7 @@ public class MainView extends VerticalLayout {
     private Button createSqlFile = new Button("Save sql file");
     private TextArea areaProblem = new TextArea("Problem in data fom Excel");
 
-    public MainView() {
+    public ContractView() {
         initHeader();
         initFileUpload();
         initOtherComponents();
@@ -51,7 +49,7 @@ public class MainView extends VerticalLayout {
         HorizontalLayout headerLayout = new HorizontalLayout();
         headerLayout.setSizeFull();
         headerLayout.setAlignItems(Alignment.CENTER);
-        Label nameLabel = new Label("Prod Support");
+        Label nameLabel = new Label("Putting/removal of the sign of payment UVPS");
         nameLabel.setSizeFull();
         headerLayout.add(nameLabel);
         add(headerLayout);
