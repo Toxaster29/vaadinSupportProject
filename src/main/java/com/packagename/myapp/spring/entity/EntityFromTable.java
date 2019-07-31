@@ -2,6 +2,13 @@ package com.packagename.myapp.spring.entity;
 
 public class EntityFromTable {
 
+    public String id;
+    public String payer;
+    public String provider;
+    public String docNumber;
+    public String docDate;
+    public Boolean haveProblem;
+
     public EntityFromTable(String id, String payer, String provider, String docNumber, String docDate) {
         this.id = id;
         this.payer = payer;
@@ -53,9 +60,11 @@ public class EntityFromTable {
         this.docDate = docDate;
     }
 
-    public String id;
-    public String payer;
-    public String provider;
-    public String docNumber;
-    public String docDate;
+    public Boolean getHaveProblem() {
+        return haveProblem;
+    }
+
+    public void setHaveProblem(Boolean haveProblem) {
+        this.haveProblem = haveProblem;
+    }
 }

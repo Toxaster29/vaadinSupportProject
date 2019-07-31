@@ -5,16 +5,20 @@ import com.packagename.myapp.spring.entity.EntityFromTable;
 import com.packagename.myapp.spring.service.ExcelParserService;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Label;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.radiobutton.RadioButtonGroup;
+import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.upload.Upload;
 import com.vaadin.flow.component.upload.receivers.MemoryBuffer;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.PWA;
+import com.vaadin.flow.server.StreamResource;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -31,7 +35,10 @@ public class MainView extends VerticalLayout {
 
     private List<EntityFromTable> listOfEntity = new ArrayList<>();
     private RadioButtonGroup<String> group = new RadioButtonGroup<>();
-    private Button doIt = new Button("Выполнить");
+    private Button doIt = new Button("Execute");
+    private TextArea area = new TextArea("Generated SQL");
+    private Button createSqlFile = new Button("Save sql file");
+    private TextArea areaProblem = new TextArea("Problem in data fom Excel");
 
     public MainView() {
         initHeader();
@@ -51,7 +58,17 @@ public class MainView extends VerticalLayout {
     }
 
     private void initOtherComponents() {
+        area.setSizeFull();
+        areaProblem.setSizeFull();
+        Anchor download = new Anchor(new StreamResource("filename.sql", () -> createResource()), "");
+        download.getElement().setAttribute("download", true);
+        download.add(createSqlFile);
+        add(area, download,areaProblem);
+    }
 
+    private InputStream createResource() {
+        InputStream targetStream = new ByteArrayInputStream(area.getValue().getBytes());
+        return targetStream;
     }
 
     private void initFileUpload() {
@@ -70,8 +87,10 @@ public class MainView extends VerticalLayout {
         doIt.addClickListener(d -> {
             if (!listOfEntity.isEmpty()) {
                 if (group.getValue() == "Плательщик АУП") {
-                    taskDao.getContractFromBDAUP(listOfEntity);
-                } else taskDao.getContractFromBDUFPS(listOfEntity);
+                    area.setValue(taskDao.getContractFromBDAUP(listOfEntity));
+                } else area.setValue(taskDao.getContractFromBDUFPS(listOfEntity));
+                createSqlFile.setEnabled(true);
+                searchProblemsInDocument();
             }
         });
         doIt.setWidthFull();
@@ -86,10 +105,31 @@ public class MainView extends VerticalLayout {
         add(headerLayout);
     }
 
+    private void searchProblemsInDocument() {
+        final String[] problemText = {""};
+        listOfEntity.forEach(entity -> {
+            if(entity.getHaveProblem() != null){
+                if(entity.getHaveProblem()) {
+                    problemText[0] += "Id Контрагента: " + entity.getId() + "\t Номер договора: " + entity.getDocNumber()
+                            + "\nSQL для нахождения договора:\nselect * from contract where legal_hid =\'"
+                            + entity.getId() + "\' and doc_number = \'" + entity.getDocNumber() + "\';";
+                }
+            }
+        });
+        if (!problemText[0].isEmpty()) {
+            areaProblem.setVisible(true);
+            areaProblem.setValue(problemText[0]);
+        }
+    }
+
     private void setElementUnActive() {
         group.clear();
+        area.clear();
         group.setEnabled(false);
         doIt.setEnabled(false);
+        createSqlFile.setEnabled(false);
+        areaProblem.clear();
+        areaProblem.setVisible(false);
     }
 
     private void showOutput(String fileName, Component component, Object output) {
