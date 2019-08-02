@@ -1,6 +1,7 @@
 package com.packagename.myapp.spring.dto;
 
 import com.packagename.myapp.spring.entity.ContractEntity;
+import com.packagename.myapp.spring.entity.DataBaseProperties;
 import com.packagename.myapp.spring.entity.EntityFromTable;
 import com.packagename.myapp.spring.entity.UfpsEntity;
 import com.packagename.myapp.spring.service.ResourceService;
@@ -109,5 +110,15 @@ public class TaskDao {
         user = props.getProperty("spring.datasource.username");
         passwd = props.getProperty("spring.datasource.password");
         ufpsList = resourceService.getUfpsEntityList();
+    }
+
+    public DataBaseProperties getDBProperties() {
+        return new DataBaseProperties(url, user, passwd);
+    }
+
+    public void setNewProperties(String urlNew, String userNew, String passwdNew) {
+        url = urlNew;
+        user = userNew;
+        passwd = passwdNew;
     }
 }
