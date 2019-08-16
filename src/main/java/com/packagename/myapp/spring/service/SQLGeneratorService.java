@@ -2,6 +2,7 @@ package com.packagename.myapp.spring.service;
 
 import com.packagename.myapp.spring.entity.ContractEntity;
 import com.packagename.myapp.spring.entity.EntityFromTable;
+import com.packagename.myapp.spring.entity.TableMainData;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -15,19 +16,37 @@ public class SQLGeneratorService {
     public String generateSqlForContractGetQuery(List<EntityFromTable> fromTableList) {
         StringBuilder prepareSql = new StringBuilder();
         prepareSql.append("Select * from contract where ");
+        String headerNumber = fromTableList.get(0).getDocNumber();
+        String half = headerNumber.substring(headerNumber.length() - 1);
+        String year = headerNumber.substring(headerNumber.length() -7, headerNumber.length() - 2);
         if (fromTableList.size() > 1) {
             for (int x = 1; x < fromTableList.size(); x++) {
                 EntityFromTable entity = fromTableList.get(x);
                 if (entity.docNumber != null && entity.getId() != null) {
                     if (x > 1) prepareSql.append(" or ");
                     prepareSql.append("legal_hid = \'" + entity.getId()
-                            + "\' and doc_number = \'" + entity.docNumber + "\'");
+                            + "\' and doc_number = \'" + entity.docNumber + "\'"
+                            + " and year = " + year + " and half = " + half);
                 }
             }
         }
-        String headerNumber = fromTableList.get(0).getDocNumber();
-        prepareSql.append(" and year = \'" + headerNumber.substring(headerNumber.length() - 1)
-                + "\' and half = \'" + headerNumber.substring(headerNumber.length() -7, headerNumber.length() - 2) + "\';");
+        return String.valueOf(prepareSql);
+    }
+
+    public String generateSqlForContract(List<TableMainData> fromTableList, int year, int half) {
+        StringBuilder prepareSql = new StringBuilder();
+        prepareSql.append("Select * from contract where ");
+        if (fromTableList.size() > 1) {
+            for (int x = 0; x < fromTableList.size(); x++) {
+                TableMainData entity = fromTableList.get(x);
+                if (entity.getDocumentNumber() != null && entity.getId() != null) {
+                    if (x > 0) prepareSql.append(" or ");
+                    prepareSql.append("legal_hid = \'" + entity.getId()
+                            + "\' and doc_number = \'" + entity.getDocumentNumber() + "\'"
+                            + " and year = " + year + " and half = " + half);
+                }
+            }
+        }
         return String.valueOf(prepareSql);
     }
 
@@ -43,7 +62,7 @@ public class SQLGeneratorService {
                 insertSql.append("insert into contract_params (contract_id,name,value) values (\'" + id
                         + "\' , \'TCFPS_PAYER\', \'" + ufpsNumber + "\');\n");
             });
-            updateSql.deleteCharAt(updateSql.length() - 1);
+            updateSql.deleteCharAt(updateSql.length() - 2);
             updateSql.append(") AND name = \'CONTRACT_PAYER\';");
             return String.valueOf(updateSql.append("\n" + insertSql));
         }
@@ -59,9 +78,9 @@ public class SQLGeneratorService {
                 updateSql.append("\'" + id + "\', ");
                 deleteSql.append("\'" + id + "\', ");
             });
-            updateSql.deleteCharAt(updateSql.length() - 1);
+            updateSql.deleteCharAt(updateSql.length() - 2);
             updateSql.append(") and name = \'CONTRACT_PAYER\';");
-            deleteSql.deleteCharAt(deleteSql.length() - 1);
+            deleteSql.deleteCharAt(deleteSql.length() - 2);
             deleteSql.append(") and name = \'TCFPS_PAYER\';");
             return String.valueOf(updateSql + "\n" + deleteSql);
         }
