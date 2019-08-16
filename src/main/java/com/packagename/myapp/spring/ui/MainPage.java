@@ -30,12 +30,12 @@ public class MainPage extends VerticalLayout {
         });
         add(buttonContract);
         Button contractChangeParameter = new Button("Editing contract data");
-        contractChangeParameter.addAttachListener(e -> {
+        contractChangeParameter.addClickListener(e -> {
             buttonContract.getUI().ifPresent(ui -> ui.navigate("contractParam"));
         });
         add(contractChangeParameter);
         Button contractChangeSign = new Button("Change contract sign");
-        contractChangeSign.addAttachListener(e -> {
+        contractChangeSign.addClickListener(e -> {
             buttonContract.getUI().ifPresent(ui -> ui.navigate("contractSign"));
         });
         add(contractChangeSign);
