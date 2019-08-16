@@ -29,6 +29,16 @@ public class MainPage extends VerticalLayout {
             buttonContract.getUI().ifPresent(ui -> ui.navigate("contract"));
         });
         add(buttonContract);
+        Button contractChangeParameter = new Button("Editing contract data");
+        contractChangeParameter.addAttachListener(e -> {
+            buttonContract.getUI().ifPresent(ui -> ui.navigate("contractParam"));
+        });
+        add(contractChangeParameter);
+        Button contractChangeSign = new Button("Change contract sign");
+        contractChangeSign.addAttachListener(e -> {
+            buttonContract.getUI().ifPresent(ui -> ui.navigate("contractSign"));
+        });
+        add(contractChangeSign);
         Button buttonRegional = new Button("Work with regional distributors");
         buttonRegional.addClickListener(e -> {
             buttonRegional.getUI().ifPresent(ui -> ui.navigate("region"));
