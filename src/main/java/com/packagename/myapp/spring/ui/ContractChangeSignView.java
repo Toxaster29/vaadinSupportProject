@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Route("contractSign")
-public class contractChangeSignView extends VerticalLayout {
+public class ContractChangeSignView extends VerticalLayout {
 
     @Autowired
     private ExcelParserService excelParserService;
@@ -40,7 +40,7 @@ public class contractChangeSignView extends VerticalLayout {
     private Button createSqlFile = new Button("Save sql file");
     private List<TableMainData> listOfEntity = new ArrayList<>();
 
-    public contractChangeSignView() {
+    public ContractChangeSignView() {
         initHeader();
         initFileUpload();
         initOtherComponents();
@@ -74,10 +74,10 @@ public class contractChangeSignView extends VerticalLayout {
         headerLayout.add(upload);
         doIt.addClickListener(d -> {
             if (!listOfEntity.isEmpty()) {
-                /*area.setValue(sqlService.generateSqlForContract(listOfEntity.stream()
-                        .filter(p -> p.getFirstPeriod().equals("да")).collect(Collectors.toList()), 2019, 2));*/
                 area.setValue(sqlService.generateSqlForContract(listOfEntity.stream()
-                        .filter(p -> p.getSecondPeriod().equals("да")).collect(Collectors.toList()), 2020, 1));
+                        .filter(p -> p.getFirstPeriod().equals("да")).collect(Collectors.toList()), 2019, 2));
+                /*area.setValue(sqlService.generateSqlForContract(listOfEntity.stream()
+                        .filter(p -> p.getSecondPeriod().equals("да")).collect(Collectors.toList()), 2020, 1));*/
             }
         });
         doIt.setWidthFull();

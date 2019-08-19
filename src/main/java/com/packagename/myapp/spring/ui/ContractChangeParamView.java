@@ -5,9 +5,9 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.Route;
 
 @Route("contractParam")
-public class contractChangeParamView extends VerticalLayout {
+public class ContractChangeParamView extends VerticalLayout {
 
-    public contractChangeParamView() {
+    public ContractChangeParamView() {
         add(new Label("Change Param"));
     }
 
