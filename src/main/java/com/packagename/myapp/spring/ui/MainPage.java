@@ -24,31 +24,45 @@ public class MainPage extends VerticalLayout {
 
 
     public MainPage() {
+        initSubscriptionPanel();
+        initSeuvPanel();
+        initDataBaseOption();
+    }
+
+    private void initSeuvPanel() {
+        Button shpiHistoryButton = new Button("Shpi history");
+        shpiHistoryButton.addClickListener(e -> {
+            shpiHistoryButton.getUI().ifPresent(ui -> ui.navigate("shpi"));
+        });
+        VerticalLayout seuvLayout = new VerticalLayout(new Label("Seuv"));
+        seuvLayout.add(shpiHistoryButton);
+        add(seuvLayout);
+    }
+
+    private void initSubscriptionPanel() {
         Button buttonContract = new Button("Work with contracts");
         buttonContract.addClickListener(e -> {
             buttonContract.getUI().ifPresent(ui -> ui.navigate("contract"));
         });
-        add(buttonContract);
         Button contractChangeParameter = new Button("Editing contract data");
         contractChangeParameter.addClickListener(e -> {
             buttonContract.getUI().ifPresent(ui -> ui.navigate("contractParam"));
         });
-        add(contractChangeParameter);
         Button contractChangeSign = new Button("Change contract sign");
         contractChangeSign.addClickListener(e -> {
             buttonContract.getUI().ifPresent(ui -> ui.navigate("contractSign"));
         });
-        add(contractChangeSign);
         Button buttonRegional = new Button("Work with regional distributors");
         buttonRegional.addClickListener(e -> {
             buttonRegional.getUI().ifPresent(ui -> ui.navigate("region"));
         });
-        add(buttonRegional);
-        initDataBaseOption();
+        VerticalLayout subscriptionLayout = new VerticalLayout(new Label("Subscription"));
+        HorizontalLayout inlineButtons = new HorizontalLayout(buttonContract, contractChangeParameter, contractChangeSign, buttonRegional);
+        subscriptionLayout.add(inlineButtons);
+        add(subscriptionLayout);
     }
 
     private void initDataBaseOption() {
-
         TextField urlText = new TextField();
         urlText.setWidth("350px");
         TextField userText = new TextField();
