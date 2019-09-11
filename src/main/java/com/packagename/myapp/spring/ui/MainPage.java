@@ -3,6 +3,7 @@ package com.packagename.myapp.spring.ui;
 import com.packagename.myapp.spring.dto.TaskDao;
 import com.packagename.myapp.spring.entity.DataBaseProperties;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.html.Label;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -18,11 +19,6 @@ public class MainPage extends VerticalLayout {
     @Autowired
     private TaskDao taskDao;
 
-    private HorizontalLayout urlLayout = new HorizontalLayout();
-    private HorizontalLayout userLayout = new HorizontalLayout();
-    private HorizontalLayout passwdLayout = new HorizontalLayout();
-
-
     public MainPage() {
         initSubscriptionPanel();
         initSeuvPanel();
@@ -34,8 +30,17 @@ public class MainPage extends VerticalLayout {
         shpiHistoryButton.addClickListener(e -> {
             shpiHistoryButton.getUI().ifPresent(ui -> ui.navigate("shpi"));
         });
+        Button shpiStatisticButton = new Button("Shpi statistic");
+        shpiStatisticButton.addClickListener(click -> {
+            shpiStatisticButton.getUI().ifPresent(ui -> ui.navigate("shpiStat"));
+        });
+        Button shpiSearchButton = new Button("Search shpi");
+        shpiSearchButton.addClickListener(cklick -> {
+           shpiSearchButton.getUI().ifPresent(ui -> ui.navigate("shpiSearch"));
+        });
         VerticalLayout seuvLayout = new VerticalLayout(new Label("Seuv"));
-        seuvLayout.add(shpiHistoryButton);
+        HorizontalLayout buttonLayout = new HorizontalLayout(shpiHistoryButton, shpiStatisticButton, shpiSearchButton);
+        seuvLayout.add(buttonLayout);
         add(seuvLayout);
     }
 
@@ -67,9 +72,9 @@ public class MainPage extends VerticalLayout {
         urlText.setWidth("350px");
         TextField userText = new TextField();
         TextField passwdText = new TextField();
-        urlLayout.add(new Label("DataBase Url"), urlText);
-        userLayout.add(new Label("DataBase User"), userText);
-        passwdLayout.add(new Label("DataBase Password"), passwdText);
+        HorizontalLayout urlLayout = new HorizontalLayout(new Label("DataBase Url"), urlText);
+        HorizontalLayout userLayout = new HorizontalLayout(new Label("DataBase User"), userText);
+        HorizontalLayout passwdLayout = new HorizontalLayout(new Label("DataBase Password"), passwdText);
         Button confirmButton = new Button("Change db options");
         confirmButton.addClickListener(click -> {
             if (!urlText.getValue().isEmpty() && !userText.getValue().isEmpty() && !passwdText.getValue().isEmpty()) {
@@ -84,7 +89,19 @@ public class MainPage extends VerticalLayout {
             passwdText.setValue(properties.getPasswd());
         });
         HorizontalLayout btnLayout = new HorizontalLayout(getCurrentOptions, confirmButton);
-        add(urlLayout, userLayout, passwdLayout, btnLayout);
+        Checkbox checkbox = new Checkbox();
+        checkbox.setValue(true);
+        checkbox.addValueChangeListener(event -> {
+            Boolean enable = event.getValue();
+            urlLayout.setEnabled(enable);
+            userLayout.setEnabled(enable);
+            passwdLayout.setEnabled(enable);
+            btnLayout.setEnabled(enable);
+        });
+        checkbox.setValue(false);
+        HorizontalLayout enableLayout = new HorizontalLayout(new Label("Enable db options?"), checkbox);
+        VerticalLayout dataBaseLayout = new VerticalLayout(enableLayout, urlLayout, userLayout, passwdLayout, btnLayout);
+        add(dataBaseLayout);
     }
 
 }

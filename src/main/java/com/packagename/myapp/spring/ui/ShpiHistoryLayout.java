@@ -13,23 +13,36 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.data.renderer.LocalDateTimeRenderer;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.spring.annotation.SpringComponent;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
 
 @Route("shpi")
+@SpringComponent
 public class ShpiHistoryLayout extends VerticalLayout {
 
     private Grid<LogShpiAction> shpiActionGrid = new Grid<>();
+    TextField shpiTextField = new TextField();
 
     @Autowired
     private SeuvDaoImpl seuvDao;
 
     public ShpiHistoryLayout() {
+        setSizeFull();
         initHeader();
         initShpiLayout();
         initTable();
+        initBottomButtons();
+    }
+
+    private void initBottomButtons() {
+        Button menuButton = new Button("Menu");
+        menuButton.addClickListener(click -> {
+           menuButton.getUI().ifPresent(ui -> ui.navigate(""));
+        });
+        add(menuButton);
     }
 
     private void initTable() {
@@ -49,6 +62,7 @@ public class ShpiHistoryLayout extends VerticalLayout {
             }
         })).setHeader("Статус").setWidth("50px");
         shpiActionGrid.addColumn(LogShpiAction::getDescription).setHeader("Описание").setWidth("800px");
+        shpiActionGrid.setWidth("5d");
         add(shpiActionGrid);
     }
 
@@ -59,7 +73,6 @@ public class ShpiHistoryLayout extends VerticalLayout {
 
     private void initShpiLayout() {
         Label label = new Label("Enter shpi code");
-        TextField shpiTextField = new TextField();
         Button searchButton = new Button("Search");
         searchButton.addClickListener(click -> {
             searchByShpi(shpiTextField.getValue());
@@ -73,5 +86,9 @@ public class ShpiHistoryLayout extends VerticalLayout {
         shpiActionGrid.setItems(seuvDao.getActionList(value));
     }
 
+    public void setShpi(String codeShpi) {
+        shpiTextField.setValue(codeShpi);
+        searchByShpi(codeShpi);
+    }
 
 }
