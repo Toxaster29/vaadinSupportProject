@@ -1,6 +1,6 @@
 package com.packagename.myapp.spring.service;
 
-import com.packagename.myapp.spring.entity.UfpsEntity;
+import com.packagename.myapp.spring.entity.contract.UfpsEntity;
 import org.springframework.stereotype.Service;
 
 import java.io.*;

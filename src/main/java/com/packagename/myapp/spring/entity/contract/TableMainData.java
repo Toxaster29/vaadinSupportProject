@@ -1,4 +1,4 @@
-package com.packagename.myapp.spring.entity;
+package com.packagename.myapp.spring.entity.contract;
 
 import java.time.LocalDate;
 

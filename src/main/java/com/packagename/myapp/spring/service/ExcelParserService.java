@@ -1,7 +1,7 @@
 package com.packagename.myapp.spring.service;
 
-import com.packagename.myapp.spring.entity.EntityFromTable;
-import com.packagename.myapp.spring.entity.TableMainData;
+import com.packagename.myapp.spring.entity.contract.EntityFromTable;
+import com.packagename.myapp.spring.entity.contract.TableMainData;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;

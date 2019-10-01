@@ -1,7 +1,7 @@
-package com.packagename.myapp.spring.ui;
+package com.packagename.myapp.spring.ui.euv;
 
 import com.packagename.myapp.spring.dto.SeuvDao;
-import com.packagename.myapp.spring.entity.ShpiTableEntity;
+import com.packagename.myapp.spring.entity.euv.ShpiTableEntity;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.datepicker.DatePicker;
@@ -15,7 +15,6 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.router.Route;
-import com.vaadin.flow.spring.annotation.SpringComponent;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.LocalDate;

@@ -1,4 +1,4 @@
-package com.packagename.myapp.spring.ui;
+package com.packagename.myapp.spring.ui.subscription;
 
 import com.vaadin.flow.component.html.Label;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;

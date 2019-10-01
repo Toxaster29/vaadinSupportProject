@@ -1,7 +1,7 @@
-package com.packagename.myapp.spring.ui;
+package com.packagename.myapp.spring.ui.subscription;
 
 import com.packagename.myapp.spring.dto.TaskDao;
-import com.packagename.myapp.spring.entity.TableMainData;
+import com.packagename.myapp.spring.entity.contract.TableMainData;
 import com.packagename.myapp.spring.service.ExcelParserService;
 import com.packagename.myapp.spring.service.SQLGeneratorService;
 import com.vaadin.flow.component.Component;

@@ -1,4 +1,4 @@
-package com.packagename.myapp.spring.entity;
+package com.packagename.myapp.spring.entity.euv;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

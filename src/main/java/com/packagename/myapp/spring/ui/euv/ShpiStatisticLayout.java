@@ -1,7 +1,7 @@
-package com.packagename.myapp.spring.ui;
+package com.packagename.myapp.spring.ui.euv;
 
 import com.packagename.myapp.spring.dto.SeuvDaoImpl;
-import com.packagename.myapp.spring.entity.EuvStatisticEntity;
+import com.packagename.myapp.spring.entity.euv.EuvStatisticEntity;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.Label;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;

@@ -1,8 +1,8 @@
 package com.packagename.myapp.spring.service;
 
-import com.packagename.myapp.spring.entity.ContractEntity;
-import com.packagename.myapp.spring.entity.EntityFromTable;
-import com.packagename.myapp.spring.entity.TableMainData;
+import com.packagename.myapp.spring.entity.contract.ContractEntity;
+import com.packagename.myapp.spring.entity.contract.EntityFromTable;
+import com.packagename.myapp.spring.entity.contract.TableMainData;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
