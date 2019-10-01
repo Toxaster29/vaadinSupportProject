@@ -17,12 +17,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.*;
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Properties;
 
 @Repository
@@ -58,28 +54,12 @@ public class TaskDao {
                     contract.setUfpsNumber(getUfpsNumberByHidAndDocNumber(contract.getLegalHid(),
                             contract.getDocNumber(), entityFromTables));
                 }
-                searchProblemData(contract, entityFromTables);
                 list.add(contract);
             }
         } catch (SQLException ex) {
             System.err.println(ex.getMessage());
         }
         return list;
-    }
-
-    private void searchProblemData(ContractEntity contract, List<EntityFromTable> entityFromTables) {
-        entityFromTables.forEach(entity -> {
-            if (entity.getDocNumber().equals(contract.getDocNumber()) && entity.getId().equals(contract.getLegalHid())) {
-                DateFormat dateFormat = new SimpleDateFormat("EEE MMM dd HH:mm:ss zzz yyyy", Locale.US);
-                try {
-                    if (!dateFormat.parse(entity.getDocDate()).equals(contract.getDocDate())) {
-                        entity.setHaveProblem(true);
-                    } else entity.setHaveProblem(false);
-                } catch (ParseException e) {
-                    System.err.println(e.getMessage());
-                }
-            }
-        });
     }
 
     private Integer getUfpsNumberByHidAndDocNumber(String legalHid, String docNumber, List<EntityFromTable> entityFromTables) {

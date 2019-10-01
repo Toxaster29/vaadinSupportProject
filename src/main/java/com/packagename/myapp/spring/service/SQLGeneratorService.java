@@ -16,17 +16,14 @@ public class SQLGeneratorService {
     public String generateSqlForContractGetQuery(List<EntityFromTable> fromTableList) {
         StringBuilder prepareSql = new StringBuilder();
         prepareSql.append("Select * from contract where ");
-        String headerNumber = fromTableList.get(0).getDocNumber();
-        String half = headerNumber.substring(headerNumber.length() - 1);
-        String year = headerNumber.substring(headerNumber.length() -7, headerNumber.length() - 2);
         if (fromTableList.size() > 1) {
             for (int x = 1; x < fromTableList.size(); x++) {
                 EntityFromTable entity = fromTableList.get(x);
-                if (entity.docNumber != null && entity.getId() != null) {
+                if (entity.getDocNumber() != null && entity.getId() != null) {
                     if (x > 1) prepareSql.append(" or ");
                     prepareSql.append("legal_hid = \'" + entity.getId()
-                            + "\' and doc_number = \'" + entity.docNumber + "\'"
-                            + " and year = " + year + " and half = " + half);
+                            + "\' and doc_number = \'" + entity.getDocNumber() + "\'"
+                            + " and year = " + entity.getYear() + " and half = " + entity.getHalf());
                 }
             }
         }

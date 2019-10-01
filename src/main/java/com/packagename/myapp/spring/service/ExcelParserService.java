@@ -20,36 +20,23 @@ public class ExcelParserService {
     @Autowired
     private static TypeParseService parseService = new TypeParseService();
 
-    public static List<EntityFromTable> readFromExcel(InputStream stream) throws IOException {
+    public static List<EntityFromTable> readFromExcel(InputStream stream, String value, String docNumberFieldValue, String yearFieldValue,
+                                                      String halfFieldValue, String payer, String startValue) throws IOException {
         Workbook workbook = new XSSFWorkbook(stream);
         Sheet datatypeSheet = workbook.getSheetAt(0);
         Iterator<Row> rows = datatypeSheet.rowIterator();
         List<EntityFromTable> entityList = new ArrayList<>();
         while (rows.hasNext()) {
             Row documentRow = rows.next();
-            EntityFromTable entityFromTable = new EntityFromTable();
-            Iterator<Cell> cellIterator = documentRow.iterator();
-            while (cellIterator.hasNext()) {
-                Cell currentCell = cellIterator.next();
-                switch (currentCell.getColumnIndex()) {
-                    case 0:
-                        entityFromTable.setId(getContext(currentCell));
-                        break;
-                    case 1:
-                        entityFromTable.setPayer(getContext(currentCell));
-                        break;
-                    case 2:
-                        entityFromTable.setProvider(getContext(currentCell));
-                        break;
-                    case 3:
-                        entityFromTable.setDocNumber(getContext(currentCell));
-                        break;
-                    case 4:
-                        entityFromTable.setDocDate(getContext(currentCell));
-                        break;
-                }
+            if (Integer.parseInt(startValue) <= documentRow.getRowNum()) {
+                EntityFromTable entityFromTable = new EntityFromTable();
+                entityFromTable.setId(documentRow.getCell(Integer.parseInt(value)).getStringCellValue());
+                entityFromTable.setDocNumber(documentRow.getCell(Integer.parseInt(docNumberFieldValue)).getStringCellValue());
+                entityFromTable.setPayer(documentRow.getCell(Integer.parseInt(payer)).getStringCellValue());
+                entityFromTable.setYear(Integer.parseInt(yearFieldValue));
+                entityFromTable.setHalf(Integer.parseInt(halfFieldValue));
+                entityList.add(entityFromTable);
             }
-            entityList.add(entityFromTable);
         }
         workbook.close();
         return entityList;
