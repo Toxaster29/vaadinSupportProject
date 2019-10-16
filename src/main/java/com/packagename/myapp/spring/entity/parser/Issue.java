@@ -3,9 +3,9 @@ package com.packagename.myapp.spring.entity.parser;
 import lombok.Data;
 
 @Data
-public class Directory {
+public class Issue {
 
-    private Long id;
-    private String name;
+    Integer month;
+    Integer count;
 
 }
