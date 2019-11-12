@@ -1,10 +1,12 @@
-package com.packagename.myapp.spring.entity.parser;
+package com.packagename.myapp.spring.entity.parser.newFormat;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
 
 import java.util.List;
 
 @Data
+@AllArgsConstructor
 public class PublVersion {
 
     private Long id;
@@ -14,10 +16,10 @@ public class PublVersion {
     private Integer standard;
     private Integer weight;
     private Integer pages;
-    private Long formatId;
+    private Integer formatId;
     private Integer height;
     private Integer width;
-    private Long timeId;
+    private Integer timeId;
     private Integer count;
     private List<Issue> issue;
 

@@ -1,4 +1,4 @@
-package com.packagename.myapp.spring.entity.parser;
+package com.packagename.myapp.spring.entity.parser.newFormat;
 
 import lombok.Data;
 
