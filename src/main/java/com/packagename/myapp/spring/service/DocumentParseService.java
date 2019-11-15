@@ -10,7 +10,6 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -22,26 +21,28 @@ public class DocumentParseService {
     @Autowired
     private ParserDao parserDao;
 
-    public void fillCampaignParams(List<SPublication> publications, Format endJson, List<STopic> topicList, List<STopicIn> topicInList, List<SIndex> indexList, List<SPrice> priceList) {
+    public void fillCampaignParams(List<SPublication> publications, Format endJson, List<ConnectivityThematicEntity> thematicEntities,
+                                   List<STopicIn> topicInList, List<SIndex> indexList, List<SPrice> priceList,
+                                   String halfYear, String yearFieldValue, Accept acceptSelectValue) {
         List<Campaign> campaignList = new ArrayList<>();
-        List<Publication> publicationList = getPublicationParams(publications, endJson, topicList, topicInList, indexList, priceList);
+        List<Publication> publicationList = getPublicationParams(publications, endJson, thematicEntities, topicInList, indexList, priceList);
         campaignList.add(new Campaign(
-                (byte) 2020,
-                (byte) 1,
-                getAcceptParams(),
+                Integer.valueOf(yearFieldValue),
+                Byte.valueOf(halfYear),
+                setAcceptByParam(acceptSelectValue),
                 publicationList,
-                getCatalogParams(indexList, endJson, publications, priceList, publicationList)));
+                getCatalogParams(indexList, endJson, publications, priceList, publicationList, yearFieldValue, halfYear)));
         endJson.setCampaign(campaignList);
     }
 
-    private List<Accept> getAcceptParams() {
+    private List<Accept> setAcceptByParam(Accept acceptSelectValue) {
         List<Accept> acceptList = new ArrayList<>();
-
+        acceptList.add(acceptSelectValue);
         return acceptList;
-    }
+     }
 
     private List<Catalog> getCatalogParams(List<SIndex> indexList, Format endJson, List<SPublication> publications
-            , List<SPrice> priceList, List<Publication> publicationList) {
+            , List<SPrice> priceList, List<Publication> publicationList, String yearFieldValue, String halfYear) {
         List<Catalog> catalogList = new ArrayList<>();
         indexList.forEach(sIndex -> {
             SPublication sPublication = getPublicationById(sIndex.getPublicationId(), publications);
@@ -54,7 +55,7 @@ public class DocumentParseService {
                     getExpeditionIdByName(sIndex.getSystem(), endJson.getExpedition()),
                     null,
                     null,
-                    getTermByPublicationData(sPublication),
+                    getTermByPublicationData(sPublication, yearFieldValue, halfYear),
                     getSubVersion(publicationList, sPublication),
                     getSubVariant(sIndex.getId(), priceList, endJson.getVat())));
         });
@@ -113,11 +114,11 @@ public class DocumentParseService {
         return subsVersions;
     }
 
-    private List<Term> getTermByPublicationData(SPublication sPublication) {
+    private List<Term> getTermByPublicationData(SPublication sPublication, String yearFieldValue, String halfYear) {
         List<Term> terms = new ArrayList<>();
         if (sPublication != null) {
-            Byte mspMonth = 1;
-            Integer year = 2020; //TODO значения нужно брать из компании или иных объектов в дальнейшем
+            Byte mspMonth = halfYear.equals("1") ? (byte) 1 : (byte) 7;
+            Integer year = Integer.valueOf(yearFieldValue);
             String[] dates = sPublication.getDates().split(",");
             if (dates.length > 0) {
                 for (int i = 1; i<=dates.length; i++) {
@@ -219,7 +220,7 @@ public class DocumentParseService {
         format.setAgency(newFormatAgencyList);
     }
 
-    private List<Publication> getPublicationParams(List<SPublication> publications, Format format, List<STopic> topicList,
+    private List<Publication> getPublicationParams(List<SPublication> publications, Format format, List<ConnectivityThematicEntity> thematicEntities,
                                                    List<STopicIn> topicInList, List<SIndex> indexList, List<SPrice> priceList) {
         List<Publication> publicationList = new ArrayList<>();
         publications.forEach(sPublication -> {
@@ -232,7 +233,7 @@ public class DocumentParseService {
                     getCountryIdByName(sPublication.getCountry(), format.getCountry()),
                     null, //В тестовых данных исключительно с параметром "Центральное" в исходных данных
                     getLanguagesByName(sPublication.getLanguage(), format.getLanguage()),
-                    getThematicByName(topicList, topicInList, sPublication.getId(), format.getThematic()),
+                    getThematicByName(topicInList, sPublication.getId(), thematicEntities),
                     null,
                     null,
                     getInnFromAgency(format.getAgency(), index),
@@ -243,7 +244,6 @@ public class DocumentParseService {
                     null);
             fillPublVersion(publication, sPublication, format.getFormat(), format.getTime());
             publicationList.add(publication);
-            getThematicByName(topicList, topicInList, sPublication.getId(), format.getThematic());
         });
         return publicationList;
     }
@@ -349,39 +349,19 @@ public class DocumentParseService {
         return null;
     }
 
-    private Integer[] getThematicByName(List<STopic> topicList, List<STopicIn> topicInList, String id, List<Directory> thematic) {
+    private Integer[] getThematicByName(List<STopicIn> topicInList, String id, List<ConnectivityThematicEntity> thematicEntities) {
         List<Integer> thematicNumber = topicInList.stream().filter(sTopicIn -> sTopicIn.getPublicationId().equals(id))
                 .map(data -> data.getRubricId()).collect(Collectors.toList());
         if (!thematicNumber.isEmpty()) {
             List<Integer> thematicIds = new ArrayList<>();
-            List<Integer> finalThematicIds = thematicIds;
-            thematicNumber.forEach(data -> {
-                String topic = topicList.stream().filter(sTopic -> sTopic.getRubricId() == data).findFirst().get().getRubricName();
-                Directory theme = thematic.stream().filter(them -> them.getName()
-                        .toUpperCase().equals(topic.toUpperCase())).findFirst().orElse(null);
-                if (theme == null) {
-                    thematic.forEach(th -> {
-                            if (th.getName().contains(".")) {
-                                String[] words = topic.split("\\.");
-                                String[] wordsTh = th.getName().split("\\.");
-                                for (String word : words) {
-                                        for (String wordTh : wordsTh) {
-                                            if (word.trim().toUpperCase().equals(wordTh.trim().toUpperCase())) {
-                                                finalThematicIds.add(th.getId());
-                                            }
-                                        }
-                                    }
-                            } else {
-                                if (th.getName().toUpperCase().equals(topic.toUpperCase())) {
-                                    finalThematicIds.add(th.getId());
-                                }
-                            }
-                    });
-                } else finalThematicIds.add(theme.getId());
-            });
-            thematicIds = new ArrayList<>(new LinkedHashSet<>(thematicIds));
-            if (thematicIds.isEmpty()) {
-                finalThematicIds.add(614); //TODO Доработать добавление тем это щас заглушка если тем вообще не нашло
+            for (Integer number : thematicNumber) {
+                for (ConnectivityThematicEntity entity : thematicEntities) {
+                    if (number == entity.getOldId()) {
+                        for (Directory directory : entity.getDirectory()) {
+                            thematicIds.add(directory.getId());
+                        }
+                    }
+                }
             }
             return thematicIds.toArray(new Integer[0]);
         } else return null;
@@ -456,6 +436,10 @@ public class DocumentParseService {
             } else paramList.add(null);
         }
         return paramList;
+    }
+
+    public List<Accept> getAcceptList() {
+       return parserDao.getAcceptList();
     }
 
 }

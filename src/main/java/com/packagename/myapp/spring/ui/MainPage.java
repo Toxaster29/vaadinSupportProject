@@ -63,7 +63,7 @@ public class MainPage extends VerticalLayout {
         });
         Button parseFileButton = new Button("Parse file");
         parseFileButton.addClickListener(click -> {
-           parseFileButton.getUI().ifPresent(ui -> ui.navigate("parser"));
+           parseFileButton.getUI().ifPresent(ui -> ui.navigate("parserView"));
         });
         Button createReportButton = new Button("Reports");
         createReportButton.addClickListener(click -> {

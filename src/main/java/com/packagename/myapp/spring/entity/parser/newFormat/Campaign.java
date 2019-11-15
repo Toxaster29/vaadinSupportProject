@@ -9,7 +9,7 @@ import java.util.List;
 @AllArgsConstructor
 public class Campaign {
 
-    private Byte year;
+    private Integer year;
     private Byte yearsub;
     private List<Accept> accept;
     private List<Publication> publication;

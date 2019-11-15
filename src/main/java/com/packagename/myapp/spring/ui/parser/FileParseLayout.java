@@ -1,10 +1,15 @@
 package com.packagename.myapp.spring.ui.parser;
 
+import com.packagename.myapp.spring.entity.parser.newFormat.Accept;
+import com.packagename.myapp.spring.entity.parser.newFormat.ConnectivityThematicEntity;
+import com.packagename.myapp.spring.entity.parser.newFormat.Directory;
 import com.packagename.myapp.spring.entity.parser.newFormat.Format;
 import com.packagename.myapp.spring.entity.parser.oldFormat.*;
 import com.packagename.myapp.spring.service.DocumentParseService;
+import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.combobox.ComboBox;
+import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.Label;
 import com.vaadin.flow.component.listbox.ListBox;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
@@ -23,6 +28,7 @@ import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -31,24 +37,61 @@ import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
-@Route("parser")
+@Route("parserView")
 public class FileParseLayout extends VerticalLayout {
 
     private DocumentParseService parseService;
 
-    private ListBox<String> captionsFromFile = new ListBox<>();
-    private String selectedCaption = "";
+    private ThematicDialog thematicDialog;
+    private NewFormatResultDialog newFormatResultDialog;
 
-    public FileParseLayout(@Autowired DocumentParseService parseService) {
+    private ListBox<String> captionsFromFile = new ListBox<>();
+    private ComboBox<Accept> acceptSelect = new ComboBox("Accept");
+    private Grid<ConnectivityThematicEntity> thematicEntityGrid = new Grid<>();
+
+    private final String[] sender = {""};
+    private List<SPublication> publications = new ArrayList<>();
+    private List<SIndex> indexList = new ArrayList<>();
+    private List<SPrice> priceList = new ArrayList<>();
+    private List<SAgency> agencies = new ArrayList<>();
+    private List<STopic> topicList = new ArrayList<>();
+    private List<STopicIn> topicInList = new ArrayList<>();
+    private List<ConnectivityThematicEntity> connectivityThematicEntities = new ArrayList<>();
+    private String selectedCaption = "";
+    private Format endJson = new Format();
+
+    public FileParseLayout(@Autowired DocumentParseService parseService, @Autowired ThematicDialog thematicDialog,
+                           @Autowired NewFormatResultDialog newFormatResultDialog) {
         this.parseService = parseService;
+        this.thematicDialog = thematicDialog;
+        this.newFormatResultDialog = newFormatResultDialog;
         setSizeFull();
+        setSpacing(false);
         initHeader();
         initFileUpload();
         initOtherComponents();
     }
 
     private void initOtherComponents() {
+        thematicEntityGrid.setSizeFull();
+        thematicEntityGrid.setSelectionMode(Grid.SelectionMode.NONE);
+        thematicEntityGrid.addColumn(ConnectivityThematicEntity::getOldId).setHeader("Id").setWidth("80px").setFlexGrow(0);
+        thematicEntityGrid.addColumn(ConnectivityThematicEntity::getOldName).setHeader("Name").setFlexGrow(1);
+        thematicEntityGrid.addColumn(ConnectivityThematicEntity::getDirectoryName).setHeader("New format thematic name").setFlexGrow(1);
+        thematicEntityGrid.addComponentColumn(item -> createEditButton(item)).setHeader("Edit").setWidth("120px").setFlexGrow(0);
+        add(thematicEntityGrid);
+    }
 
+    private Component createEditButton(ConnectivityThematicEntity item) {
+        Button button = new Button("Edit", clickEvent -> {
+            thematicDialog.open();
+            thematicDialog.buildDialog(item.getOldName() ,endJson.getThematic(), item.getDirectory(), this::refreshGrid);
+        });
+        return button;
+    }
+
+    private void refreshGrid() {
+        thematicEntityGrid.getDataProvider().refreshAll();
     }
 
     private void initFileUpload() {
@@ -76,10 +119,10 @@ public class FileParseLayout extends VerticalLayout {
         });
         TextField yearField = new TextField("Year");
         TextField halfYearField = new TextField("Half");
-        ComboBox acceptSelect = new ComboBox("Accept");
         yearField.setWidthFull();
         halfYearField.setWidthFull();
         acceptSelect.setWidthFull();
+        acceptSelect.setItemLabelGenerator(Accept::getName);
         Button getDateButton = new Button("Set date from caption");
         getDateButton.addClickListener(click -> {
             if (!selectedCaption.isEmpty()) {
@@ -95,12 +138,17 @@ public class FileParseLayout extends VerticalLayout {
                 }
             }
         });
+        Button parseDataButton = new Button("Start parse data");
+        parseDataButton.addClickListener(click -> {
+            generateDataNewFormat(halfYearField.getValue(), yearField.getValue(), acceptSelect.getValue());
+        });
         VerticalLayout uploadLayout = new VerticalLayout(upload, readData);
         uploadLayout.setSizeFull();
         VerticalLayout captionLayout = new VerticalLayout(captionsFromFile, getDateButton);
         captionLayout.setSizeFull();
-        VerticalLayout campaignLayout = new VerticalLayout(yearField, halfYearField, acceptSelect);
+        VerticalLayout campaignLayout = new VerticalLayout(yearField, halfYearField, acceptSelect, parseDataButton);
         campaignLayout.setSizeFull();
+        campaignLayout.setSpacing(false);
         HorizontalLayout topLayout = new HorizontalLayout(uploadLayout, captionLayout, campaignLayout);
         topLayout.setWidthFull();
         add(topLayout);
@@ -131,18 +179,50 @@ public class FileParseLayout extends VerticalLayout {
         }
     }
 
+    private void generateDataNewFormat(String halfYear, String yearFieldValue, Accept acceptSelectValue) {
+        endJson.setSender(parseService.parseLine(sender[0]).get(0));
+        endJson.setDate(LocalDate.now());
+        endJson.setVersion((byte) 1);
+        parseService.fillCampaignParams(publications, endJson, connectivityThematicEntities, topicInList, indexList,
+                priceList, halfYear, yearFieldValue, acceptSelectValue);
+        newFormatResultDialog.open();
+        newFormatResultDialog.buildDialog(endJson);
+    }
+
+    private void loadDirectoryModeration(List<ConnectivityThematicEntity> connectivityThematicEntities) {
+        thematicEntityGrid.setItems(connectivityThematicEntities);
+    }
+
+    private List<ConnectivityThematicEntity> prepareDirectoryForTopics(List<STopic> topicList, List<Directory> thematicList) {
+        List<ConnectivityThematicEntity> thematicEntityList = new ArrayList<>();
+       for (STopic topic : topicList) {
+           List<Directory> directories = new ArrayList<>();
+           for (Directory theme : thematicList) {
+               if (topic.getRubricName().contains(".")) {
+                   String[] words = topic.getRubricName().split("\\.");
+                   String[] wordsTh = theme.getName().split("\\.");
+                   for (String word : words) {
+                       for (String wordTh : wordsTh) {
+                           if (word.trim().toUpperCase().equals(wordTh.trim().toUpperCase())) {
+                               directories.add(theme);
+                           }
+                       }
+                   }
+                   directories = new ArrayList<>(new LinkedHashSet<>(directories));
+               } else {
+                   if (theme.getName().toUpperCase().equals(topic.getRubricName().toUpperCase())) directories.add(theme);
+               }
+           }
+           thematicEntityList.add(new ConnectivityThematicEntity(topic.getRubricId(), topic.getRubricName(), directories));
+       }
+       return thematicEntityList;
+    }
+
     private void parseFileData(List<String> lineList) {
-        final String[] sender = {""};
-        List<SPublication> publications = new ArrayList<>();
-        List<SIndex> indexList = new ArrayList<>();
-        List<SPrice> priceList = new ArrayList<>();
         List<SCatalog> catalogList = new ArrayList<>();
         List<SCountIn> countList = new ArrayList<>();
         List<SArea> areaList = new ArrayList<>();
-        List<SAgency> agencies = new ArrayList<>();
         List<SDispatch> dispatchList = new ArrayList<>();
-        List<STopic> topicList = new ArrayList<>();
-        List<STopicIn> topicInList = new ArrayList<>();
         List<String> captionList = new ArrayList<>();
         lineList.stream().forEach(line -> {
             if (!line.isEmpty()) {
@@ -189,14 +269,11 @@ public class FileParseLayout extends VerticalLayout {
             }
         });
         setCaptionsFromFileOnLayout(captionList);
-        Format endJson = new Format();
-        endJson.setSender(parseService.parseLine(sender[0]).get(0));
-        endJson.setDate(LocalDate.now());
-        endJson.setVersion((byte) 1);
+        acceptSelect.setItems(parseService.getAcceptList());
         parseService.fillDictionaryData(endJson);
         parseService.fillAgencyParams(agencies, endJson);
-        parseService.fillCampaignParams(publications, endJson, topicList, topicInList, indexList, priceList);
-        System.out.println("Complete");
+        connectivityThematicEntities = prepareDirectoryForTopics(topicList, endJson.getThematic());
+        loadDirectoryModeration(connectivityThematicEntities);
     }
 
     private void setCaptionsFromFileOnLayout(List<String> captionList) {

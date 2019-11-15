@@ -29,4 +29,34 @@ public class Publication {
     private Image img;
     private List<PublVersion> publVersion;
 
+    public String getRegionsToString() {
+        if (this.regions != null) {
+            String line = "";
+            for (Integer region : this.regions) {
+                line += region + "; ";
+            }
+            return line;
+        } else return null;
+    }
+
+    public String getLanguagesToString() {
+        if (this.languages != null) {
+            String line = "";
+            for (Integer language : this.languages) {
+                line += language + "; ";
+            }
+            return line;
+        } else return null;
+    }
+
+    public String getThematicsToString() {
+        if (this.thematics != null) {
+            String line = "";
+            for (Integer theme : this.thematics) {
+                line += theme + "; ";
+            }
+            return line;
+        } else return null;
+    }
+
 }
