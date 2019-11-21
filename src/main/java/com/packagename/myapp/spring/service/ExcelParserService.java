@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -30,7 +31,12 @@ public class ExcelParserService {
             Row documentRow = rows.next();
             if (Integer.parseInt(startValue) <= documentRow.getRowNum()) {
                 EntityFromTable entityFromTable = new EntityFromTable();
-                entityFromTable.setId(documentRow.getCell(Integer.parseInt(value)).getStringCellValue());
+                String type = documentRow.getCell(Integer.parseInt(value)).getCellTypeEnum().toString();
+                if (documentRow.getCell(Integer.parseInt(value)).getCellTypeEnum().equals(CellType.STRING)) {
+                    entityFromTable.setId(documentRow.getCell(Integer.parseInt(value)).getStringCellValue());
+                } else if (documentRow.getCell(Integer.parseInt(value)).getCellTypeEnum().equals(CellType.NUMERIC)) {
+                    entityFromTable.setId(String.valueOf(BigDecimal.valueOf(documentRow.getCell(Integer.parseInt(value)).getNumericCellValue()).setScale(0)));
+                }
                 entityFromTable.setDocNumber(documentRow.getCell(Integer.parseInt(docNumberFieldValue)).getStringCellValue());
                 entityFromTable.setPayer(documentRow.getCell(Integer.parseInt(payer)).getStringCellValue());
                 entityFromTable.setYear(Integer.parseInt(yearFieldValue));

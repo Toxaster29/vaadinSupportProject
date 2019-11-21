@@ -23,6 +23,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 @Route("contract")
@@ -105,6 +106,11 @@ public class ContractView extends VerticalLayout {
         headerLayout.add(uploadLayout);
         doIt.addClickListener(d -> {
             if (!listOfEntity.isEmpty()) {
+                Iterator<EntityFromTable> tableIterator = listOfEntity.iterator();
+                while(tableIterator.hasNext()) {
+                    EntityFromTable entity = tableIterator.next();
+                    if (entity.getId() == null) tableIterator.remove();
+                }
                 if (group.getValue() == "Плательщик АУП") {
                     area.setValue(taskDao.getContractFromBDAUP(listOfEntity));
                 } else area.setValue(taskDao.getContractFromBDUFPS(listOfEntity));
