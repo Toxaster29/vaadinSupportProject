@@ -257,7 +257,7 @@ public class DocumentParseService {
             String[] pages = sPublication.getOutputDaysOfWeekBand().split(",");
             if (!formats[i].isEmpty() && !formats[i].equals("0")) {
                 PublVersion publVersion = new PublVersion(
-                        publication.getId(),
+                        (publication.getId() * 100) + i ,
                         publication.getTitle(),
                         publication.getRegions(),
                         null,
@@ -442,4 +442,43 @@ public class DocumentParseService {
        return parserDao.getAcceptList();
     }
 
+    public List<ConnectivityThematicEntity> getConnectivityThematicFromDataBase(List<Directory> thematic) {
+        List<ConnectivityThematicEntity> connectivityThematicEntities = new ArrayList<>();
+        List<ConnectionThematic> connectionThematicList = parserDao.getConnectivityThematicEntities();
+        for (ConnectionThematic connection : connectionThematicList) {
+            connectivityThematicEntities.add(new ConnectivityThematicEntity(connection.getOldId(), connection.getOldName(),
+                    getDirectors(thematic, connection.getNewIds())));
+        }
+        return connectivityThematicEntities;
+    }
+
+    private List<Directory> getDirectors(List<Directory> thematic, String newIds) {
+        List<Directory> directories = new ArrayList<>();
+        String[] ids = newIds.split(";");
+        for (String id : ids) {
+            for (Directory theme : thematic) {
+                if (Integer.parseInt(id) == theme.getId()) {
+                    directories.add(theme);
+                    break;
+                }
+            }
+        }
+        return directories;
+    }
+
+    public void uploadConnectionThematicToDB(List<ConnectivityThematicEntity> connectivityThematicEntities) {
+        List<ConnectionThematic> connectionThematicList = new ArrayList<>();
+        for (ConnectivityThematicEntity thematic : connectivityThematicEntities) {
+            connectionThematicList.add(new ConnectionThematic(thematic.getOldId(), thematic.getOldName(), thematic.getDirectoryId()));
+        }
+        parserDao.uploadConnectionData(connectionThematicList);
+    }
+
+    public void fillTerrainParams(List<SArea> areaList, Format endJson) {
+        List<Terrain> terrains = new ArrayList<>();
+        for (SArea area : areaList) {
+            terrains.add(new Terrain(area.getId(), area.getName(), area.getId(), null));
+        }
+        endJson.setTerrain(terrains);
+    }
 }

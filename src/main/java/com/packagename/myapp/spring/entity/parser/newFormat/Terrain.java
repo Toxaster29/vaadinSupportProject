@@ -1,15 +1,27 @@
 package com.packagename.myapp.spring.entity.parser.newFormat;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
 
 import java.util.List;
 
 @Data
+@AllArgsConstructor
 public class Terrain {
 
-    private Long id;
+    private Integer id;
     private String name;
-    private Long regionId;
+    private Integer regionId;
     private List<String> zipcodes;
+
+    public String zipcodesToString() {
+        String codes = "";
+        if (this.zipcodes != null) {
+            for (String line : this.zipcodes) {
+                codes += line;
+            }
+        }
+        return codes;
+    }
 
 }

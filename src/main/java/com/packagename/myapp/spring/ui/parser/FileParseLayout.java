@@ -56,6 +56,7 @@ public class FileParseLayout extends VerticalLayout {
     private List<SAgency> agencies = new ArrayList<>();
     private List<STopic> topicList = new ArrayList<>();
     private List<STopicIn> topicInList = new ArrayList<>();
+    private List<SArea> areaList = new ArrayList<>();
     private List<ConnectivityThematicEntity> connectivityThematicEntities = new ArrayList<>();
     private String selectedCaption = "";
     private Format endJson = new Format();
@@ -183,6 +184,8 @@ public class FileParseLayout extends VerticalLayout {
         endJson.setSender(parseService.parseLine(sender[0]).get(0));
         endJson.setDate(LocalDate.now());
         endJson.setVersion((byte) 1);
+        parseService.fillTerrainParams(areaList, endJson);
+        //parseService.uploadConnectionThematicToDB(connectivityThematicEntities); //Используется для заполнения связи тематик в бд (весь список) при изменении справочников
         parseService.fillCampaignParams(publications, endJson, connectivityThematicEntities, topicInList, indexList,
                 priceList, halfYear, yearFieldValue, acceptSelectValue);
         newFormatResultDialog.open();
@@ -221,10 +224,9 @@ public class FileParseLayout extends VerticalLayout {
     private void parseFileData(List<String> lineList) {
         List<SCatalog> catalogList = new ArrayList<>();
         List<SCountIn> countList = new ArrayList<>();
-        List<SArea> areaList = new ArrayList<>();
         List<SDispatch> dispatchList = new ArrayList<>();
         List<String> captionList = new ArrayList<>();
-        lineList.stream().forEach(line -> {
+        lineList.forEach(line -> {
             if (!line.isEmpty()) {
                 int point = line.indexOf('(');
                 String tagName = line.substring(0, point);
@@ -272,7 +274,13 @@ public class FileParseLayout extends VerticalLayout {
         acceptSelect.setItems(parseService.getAcceptList());
         parseService.fillDictionaryData(endJson);
         parseService.fillAgencyParams(agencies, endJson);
-        connectivityThematicEntities = prepareDirectoryForTopics(topicList, endJson.getThematic());
+        List<ConnectivityThematicEntity> connectivityThematicFromDB = parseService
+                .getConnectivityThematicFromDataBase(endJson.getThematic());
+        if (connectivityThematicFromDB.isEmpty()) {
+            connectivityThematicEntities = prepareDirectoryForTopics(topicList, endJson.getThematic());
+        } else {
+            connectivityThematicEntities = connectivityThematicFromDB;
+        }
         loadDirectoryModeration(connectivityThematicEntities);
     }
 

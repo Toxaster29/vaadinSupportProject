@@ -2,6 +2,8 @@ package com.packagename.myapp.spring.dto;
 
 import com.packagename.myapp.spring.entity.parser.DirectoryData;
 import com.packagename.myapp.spring.entity.parser.newFormat.Accept;
+import com.packagename.myapp.spring.entity.parser.newFormat.ConnectionThematic;
+import com.packagename.myapp.spring.entity.parser.newFormat.ConnectivityThematicEntity;
 import org.springframework.stereotype.Repository;
 
 import java.sql.*;
@@ -47,5 +49,39 @@ public class ParserDaoImpl implements ParserDao {
             System.err.println(ex.getMessage());
         }
         return acceptList;
+    }
+
+    @Override
+    public List<ConnectionThematic> getConnectivityThematicEntities() {
+        List<ConnectionThematic> connectivityThematicEntities = new ArrayList<>();
+        try (Connection con = DriverManager.getConnection(url, user, passwd);
+             PreparedStatement pst = con.prepareStatement("SELECT * FROM connection_thematic");
+             ResultSet rs = pst.executeQuery()) {
+            while (rs.next()) {
+                connectivityThematicEntities.add(new ConnectionThematic(rs.getInt(1), rs.getString(2), rs.getString(3)));
+            }
+        } catch (SQLException ex) {
+            System.err.println(ex.getMessage());
+        }
+        return connectivityThematicEntities;
+    }
+
+    @Override
+    public void uploadConnectionData(List<ConnectionThematic> connectionThematicList) {
+        String sql = "INSERT INTO public.connection_thematic\n" +
+                "(oldi_d, old_name, new_id)\n" +
+                "VALUES \n";
+        for (ConnectionThematic thematic : connectionThematicList) {
+            sql += String.format(("(\'%s\',\'%s\',\'%s\'),"), thematic.getOldId(), thematic.getOldName(), thematic.getNewIds());
+        }
+        sql = sql.substring(0, sql.length() - 1);
+        try {
+            Connection con = DriverManager.getConnection(url, user, passwd);
+            Statement st = con.createStatement();
+            st.execute(sql);
+            con.close();
+        }  catch (SQLException ex) {
+            System.err.println(ex.getMessage());
+        }
     }
 }

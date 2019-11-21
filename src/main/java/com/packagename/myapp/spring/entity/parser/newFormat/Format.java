@@ -31,6 +31,5 @@ public class Format {
     private List<Terrain> terrain;
     private List<Agency> agency;
     private List<Campaign> campaign;
-    private List<Accept> accept;
 
 }

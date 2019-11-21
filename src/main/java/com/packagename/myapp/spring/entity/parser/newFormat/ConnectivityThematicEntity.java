@@ -21,4 +21,12 @@ public class ConnectivityThematicEntity {
         return names;
     }
 
+    public String getDirectoryId() {
+        String id = "";
+        for (Directory dir : this.getDirectory()) {
+           id += dir.getId()+ ";";
+        }
+        return id;
+    }
+
 }

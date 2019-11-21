@@ -14,4 +14,14 @@ public class SubsVariant {
     private Integer vatId;
     private Byte state;
 
+    public String getRegionsToString() {
+        String regions = "";
+        if (this.regions != null) {
+            for (Integer region : this.regions) {
+                regions += String.valueOf(region) + "; ";
+            }
+        }
+        return regions;
+    }
+
 }
