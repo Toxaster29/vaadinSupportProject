@@ -3,7 +3,6 @@ package com.packagename.myapp.spring.dto;
 import com.packagename.myapp.spring.entity.parser.DirectoryData;
 import com.packagename.myapp.spring.entity.parser.newFormat.Accept;
 import com.packagename.myapp.spring.entity.parser.newFormat.ConnectionThematic;
-import com.packagename.myapp.spring.entity.parser.newFormat.ConnectivityThematicEntity;
 import org.springframework.stereotype.Repository;
 
 import java.sql.*;

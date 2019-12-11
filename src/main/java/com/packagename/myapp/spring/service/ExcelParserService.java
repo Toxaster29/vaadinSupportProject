@@ -2,6 +2,8 @@ package com.packagename.myapp.spring.service;
 
 import com.packagename.myapp.spring.entity.contract.EntityFromTable;
 import com.packagename.myapp.spring.entity.contract.TableMainData;
+import com.packagename.myapp.spring.entity.schedule.PublisherSchedule;
+import com.packagename.myapp.spring.entity.schedule.ScheduleDates;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,7 +13,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
@@ -20,6 +25,11 @@ public class ExcelParserService {
 
     @Autowired
     private static TypeParseService parseService = new TypeParseService();
+    private int publisherIdCell = 0;
+    private int contractIdCell = 1;
+    private int dateEarlyStart = 2;
+    private int dateMainStart = 5;
+    private int dateCurrentMonthStart = 9;
 
     public static List<EntityFromTable> readFromExcel(InputStream stream, String value, String docNumberFieldValue, String yearFieldValue,
                                                       String halfFieldValue, String payer, String startValue) throws IOException {
@@ -31,7 +41,6 @@ public class ExcelParserService {
             Row documentRow = rows.next();
             if (Integer.parseInt(startValue) <= documentRow.getRowNum()) {
                 EntityFromTable entityFromTable = new EntityFromTable();
-                String type = documentRow.getCell(Integer.parseInt(value)).getCellTypeEnum().toString();
                 if (documentRow.getCell(Integer.parseInt(value)).getCellTypeEnum().equals(CellType.STRING)) {
                     entityFromTable.setId(documentRow.getCell(Integer.parseInt(value)).getStringCellValue());
                 } else if (documentRow.getCell(Integer.parseInt(value)).getCellTypeEnum().equals(CellType.NUMERIC)) {
@@ -97,4 +106,60 @@ public class ExcelParserService {
         return  String.valueOf(currentCell.getDateCellValue());
     }
 
+    public List<PublisherSchedule> readFromExcelSchedules(InputStream inputStream, int startRow) throws IOException {
+        List<PublisherSchedule> schedules = new ArrayList<>();
+        Workbook workbook = new XSSFWorkbook(inputStream);
+        Sheet datatypeSheet = workbook.getSheetAt(0);
+        Iterator<Row> rows = datatypeSheet.rowIterator();
+        while (rows.hasNext()) {
+            Row documentRow = rows.next();
+            if (documentRow.getRowNum() >= startRow) {
+                PublisherSchedule publisherSchedule = new PublisherSchedule(getPublisherId(documentRow.getCell(publisherIdCell)),
+                        getContractId(documentRow.getCell(contractIdCell)), null);
+                List<ScheduleDates> scheduleDates = new ArrayList<>();
+                scheduleDates.add(createDateByParams("EARLY", null, dateEarlyStart, documentRow));
+                scheduleDates.add(createDateByParams("MAIN", null, dateMainStart, documentRow));
+                scheduleDates.add(createDateByParams("CURRENT", "FEBRUARY", dateCurrentMonthStart, documentRow));
+                scheduleDates.add(createDateByParams("CURRENT", "MARCH", dateCurrentMonthStart + 4 , documentRow));
+                scheduleDates.add(createDateByParams("CURRENT", "APRIL", dateCurrentMonthStart + 8 , documentRow));
+                scheduleDates.add(createDateByParams("CURRENT", "MAY", dateCurrentMonthStart + 12 , documentRow));
+                scheduleDates.add(createDateByParams("CURRENT", "JUNE", dateCurrentMonthStart + 16 , documentRow));
+                publisherSchedule.setDates(scheduleDates);
+                schedules.add(publisherSchedule);
+            }
+        }
+        return schedules;
+    }
+
+    private LocalDate convertToLocalDate(Cell dateToConvert) {
+        if (dateToConvert.getCellTypeEnum().equals(CellType.STRING)) {
+            return LocalDate.parse(dateToConvert.getStringCellValue());
+        }
+        return dateToConvert.getDateCellValue().toInstant()
+                .atZone(ZoneId.systemDefault())
+                .toLocalDate();
+    }
+
+    private ScheduleDates createDateByParams(String name, String month, int start, Row documentRow) {
+        LocalDate docGeneration = convertToLocalDate(documentRow.getCell(start));
+        LocalDate tfpsDate = convertToLocalDate(documentRow.getCell(start + 1));
+        LocalDate onlineDate = convertToLocalDate(documentRow.getCell(start + 2));
+        LocalDate publisherDate = convertToLocalDate(documentRow.getCell(start + 3));
+        return new ScheduleDates(name, month, docGeneration, tfpsDate, onlineDate, name.equals("EARLY") ? null : publisherDate);
+    }
+
+    private Integer getContractId(Cell cell) {
+        if (cell.getCellTypeEnum().equals(CellType.STRING)) {
+            if (!cell.getStringCellValue().equals("-")) {
+                return Integer.parseInt(cell.getStringCellValue());
+            } else return null;
+        } else return ((int) cell.getNumericCellValue());
+    }
+
+    private String getPublisherId(Cell cell) {
+        if (cell.getCellTypeEnum().equals(CellType.STRING)) {
+            return cell.getStringCellValue();
+        } else return String.valueOf(BigDecimal.valueOf(cell.getNumericCellValue()).setScale(0));
+
+    }
 }
