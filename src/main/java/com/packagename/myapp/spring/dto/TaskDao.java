@@ -70,7 +70,7 @@ public class TaskDao {
         });
         if (!ufpsName[0].isEmpty()) {
             ufpsList.forEach(ufpsEntity -> {
-                if(ufpsEntity.getDescription().equals(ufpsName[0])) ufpsNumber[0] = Integer.parseInt(ufpsEntity.getId());
+                if(ufpsEntity.getDescription().toUpperCase().equals(ufpsName[0].toUpperCase())) ufpsNumber[0] = Integer.parseInt(ufpsEntity.getId());
             });
         }
         return ufpsNumber[0];

@@ -76,7 +76,12 @@ public class MainPage extends VerticalLayout {
         VerticalLayout subscriptionLayout = new VerticalLayout(new Label("Subscription"));
         HorizontalLayout inlineButtons = new HorizontalLayout(buttonContract, contractChangeParameter, contractChangeSign,
                 buttonRegional, parseFileButton, createReportButton, scheduleButton);
-        subscriptionLayout.add(inlineButtons);
+        Button magazineButton = new Button("Magazine");
+        magazineButton.addClickListener(click -> {
+            magazineButton.getUI().ifPresent(ui -> ui.navigate("magazine"));
+        });
+        HorizontalLayout secondLineButtons = new HorizontalLayout(magazineButton);
+        subscriptionLayout.add(inlineButtons, secondLineButtons);
         add(subscriptionLayout);
     }
 
