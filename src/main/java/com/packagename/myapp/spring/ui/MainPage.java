@@ -80,7 +80,11 @@ public class MainPage extends VerticalLayout {
         magazineButton.addClickListener(click -> {
             magazineButton.getUI().ifPresent(ui -> ui.navigate("magazine"));
         });
-        HorizontalLayout secondLineButtons = new HorizontalLayout(magazineButton);
+        Button avatarButton = new Button("Avatar");
+        avatarButton.addClickListener(click -> {
+            avatarButton.getUI().ifPresent(ui -> ui.navigate("avatar"));
+        });
+        HorizontalLayout secondLineButtons = new HorizontalLayout(magazineButton, avatarButton);
         subscriptionLayout.add(inlineButtons, secondLineButtons);
         add(subscriptionLayout);
     }

@@ -33,9 +33,15 @@ public class ReportLayout extends VerticalLayout {
             String publisherId = publisherIdField.getValue();
             if (publisherId != null && !publisherId.isEmpty()) {
                 reportService.createPublisherOutputReport(publisherId);
+            } else {
+                reportService.createOutputReportForAllPublishers();
             }
         });
-        add(generateReportButton, publisherIdField, generatePublisherReportButton);
+        Button addDataToReport = new Button("Add data");
+        addDataToReport.addClickListener(click -> {
+           reportService.addDataToReport();
+    });
+        add(generateReportButton, publisherIdField, generatePublisherReportButton, addDataToReport);
     }
 
     private void initHeader() {

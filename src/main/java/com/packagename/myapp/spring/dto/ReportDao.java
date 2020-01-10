@@ -20,4 +20,18 @@ public interface ReportDao {
     List<CatalogPeriodEntity> getCatalogPeriodList();
 
     List<SubscriptionByPublisher> getSubscriptionList(String publisherId, String publicationCode, Integer periodId);
+
+    List<CatalogPeriod> getPeriodList();
+
+    List<CatalogPublicationEntity> getCatalogPublicationInfo();
+
+    List<String> getSubscriptionOutputListForPublication(String legalHid, String publicationCode, Integer periodId, String index);
+
+   List<CatalogPrice> getCatalogPricesByElementId(Integer id);
+
+    void insertCatalogData(CatalogPublicationEntity entity, CatalogPrice price, Integer half);
+
+    List<String> getReportPublishers();
+
+    void addReportParams(String publisher);
 }

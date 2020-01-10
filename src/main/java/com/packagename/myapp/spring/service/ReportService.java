@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -92,5 +93,47 @@ public class ReportService {
             });
         });
         System.out.println("Complete");
+    }
+
+    public void createOutputReportForAllPublishers() {
+        List<CatalogPeriod> catalogPeriods = reportDao.getPeriodList();
+        List<CatalogPublicationEntity> publicationEntities = reportDao.getCatalogPublicationInfo();
+        publicationEntities.forEach(entity -> {
+            final String[] index = {""};
+            Integer half = getHalfByPeriodId(catalogPeriods, entity.getPeriodId());
+            List<CatalogPrice> catalogPrices = reportDao.getCatalogPricesByElementId(entity.getId());
+            catalogPrices.forEach(price -> {
+                if (!index[0].equals(price.getIndex())) {
+                    if (index[0].equals("")) index[0] = price.getIndex();
+                    List<String> outputs = reportDao.getSubscriptionOutputListForPublication(entity.getLegalHid(),
+                            entity.getPublicationCode(), entity.getPeriodId(), price.getIndex());
+                    Integer count = 0;
+                    for (String output : outputs) {
+                        String out = output.substring(1, output.length() - 1);
+                        String[] alloc = out.split(",");
+                        for (int i = 0; i < alloc.length; i++) {
+                            if (entity.getOutputMonthCount()[i] > 0) {
+                                count += Integer.parseInt(alloc[i]) * entity.getOutputMonthCount()[i];
+                            }
+                        }
+                    }
+                    entity.setCirculation(count);
+                    entity.setOutputCount(Arrays.stream(entity.getOutputMonthCount()).mapToInt(Integer::intValue).sum());
+                    reportDao.insertCatalogData(entity, price, half);
+                }
+            });
+        });
+        System.out.println("Complete");
+    }
+
+    private Integer getHalfByPeriodId(List<CatalogPeriod> catalogPeriods, Integer periodId) {
+       return catalogPeriods.stream().filter(period -> period.getPeriodId().equals(periodId)).findFirst().get().getHalf();
+    }
+
+    public void addDataToReport() {
+        List<String> publishers = reportDao.getReportPublishers();
+        publishers.forEach(publisher -> {
+            reportDao.addReportParams(publisher);
+        });
     }
 }
