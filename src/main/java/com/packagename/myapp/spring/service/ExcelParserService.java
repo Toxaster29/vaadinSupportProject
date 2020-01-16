@@ -2,6 +2,7 @@ package com.packagename.myapp.spring.service;
 
 import com.packagename.myapp.spring.entity.contract.EntityFromTable;
 import com.packagename.myapp.spring.entity.contract.TableMainData;
+import com.packagename.myapp.spring.entity.excelParser.PublisherFromExcel;
 import com.packagename.myapp.spring.entity.schedule.PublisherSchedule;
 import com.packagename.myapp.spring.entity.schedule.ScheduleDates;
 import org.apache.poi.ss.usermodel.*;
@@ -161,5 +162,41 @@ public class ExcelParserService {
             return cell.getStringCellValue();
         } else return String.valueOf(BigDecimal.valueOf(cell.getNumericCellValue()).setScale(0));
 
+    }
+
+    public List<PublisherFromExcel> readPublisherDataFromExcel(InputStream inputStream) throws IOException {
+        List<PublisherFromExcel> publisherFromExcelList = new ArrayList<>();
+        Workbook workbook = new XSSFWorkbook(inputStream);
+        Sheet datatypeSheet = workbook.getSheetAt(0);
+        Iterator<Row> rows = datatypeSheet.rowIterator();
+        while (rows.hasNext()) {
+            Row documentRow = rows.next();
+            if (documentRow.getRowNum() > 0) {
+                Iterator<Cell> cellIterator = documentRow.iterator();
+                PublisherFromExcel fromExcel = new PublisherFromExcel();
+                while (cellIterator.hasNext()) {
+                    Cell currentCell = cellIterator.next();
+                    switch (currentCell.getColumnIndex()) {
+                        case 1:
+                            fromExcel.setPublisherName(currentCell.getStringCellValue());
+                            break;
+                        case 2:
+                            if (currentCell.getCellTypeEnum().equals(CellType.STRING)) {
+                                fromExcel.setPrice(Integer.parseInt(currentCell.getStringCellValue()));
+                            } else fromExcel.setPrice((int) currentCell.getNumericCellValue());
+                            break;
+                        case 3:
+                            if (currentCell.getCellTypeEnum().equals(CellType.STRING)) {
+                                fromExcel.setInn(String.valueOf(currentCell.getStringCellValue()));
+                            } else fromExcel.setInn(String.valueOf(currentCell.getNumericCellValue()));
+                            break;
+                    }
+                }
+                if (fromExcel.getPublisherName() == null) {
+                    break;
+                } else publisherFromExcelList.add(fromExcel);
+            }
+        }
+        return publisherFromExcelList;
     }
 }
