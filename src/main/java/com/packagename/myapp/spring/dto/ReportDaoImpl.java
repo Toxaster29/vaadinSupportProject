@@ -40,28 +40,34 @@ public class ReportDaoImpl implements ReportDao {
             "where se.legal_hid = \'%s\' and  se.catalogue_for_period_id = %s and se.publication_code = \'%s\'\n" +
             "group by ro.region_id";
 
-    private static String GET_CATALOG_INFORMATION_FOR_ALL_PUBLISHER = "SELECT se.id ,se.legal_hid, se.title, se.publication_code, se.catalogue_for_period_id,\n" +
-            "sum(case rd.\"month\" when 0 then 1 else 0 end) as Jan,  sum(case rd.\"month\" when 1 then 1 else 0 end) as FEB,\n" +
-            "sum(case rd.\"month\" when 2 then 1 else 0 end) as Mar, sum(case rd.\"month\" when 3 then 1 else 0 end) as APR,\n" +
-            "sum(case rd.\"month\" when 4 then 1 else 0 end) as MAY, sum(case rd.\"month\" when 5 then 1 else 0 end) as JUN,\n" +
-            "sum(case rd.\"month\" when 6 then 1 else 0 end) as JUL, sum(case rd.\"month\" when 7 then 1 else 0 end) as AUG,\n" +
-            "sum(case rd.\"month\" when 8 then 1 else 0 end) as SEP, sum(case rd.\"month\" when 9 then 1 else 0 end) as OCT,\n" +
-            "sum(case rd.\"month\" when 10 then 1 else 0 end) as NOV, sum(case rd.\"month\" when 11 then 1 else 0 end) as \"dec\"\n" +
+    private static String GET_CATALOG_INFORMATION_FOR_ALL_PUBLISHER = "select foo.id,foo.legal_hid, foo.title, foo.publication_code, foo.catalogue_for_period_id,\n" +
+            "sum(case foo.\"month\" when 0 then 1 else 0 end) as Jan,  sum(case foo.\"month\" when 1 then 1 else 0 end) as FEB,\n" +
+            "sum(case foo.\"month\" when 2 then 1 else 0 end) as Mar, sum(case foo.\"month\" when 3 then 1 else 0 end) as APR,\n" +
+            "sum(case foo.\"month\" when 4 then 1 else 0 end) as MAY, sum(case foo.\"month\" when 5 then 1 else 0 end) as JUN,\n" +
+            "sum(case foo.\"month\" when 6 then 1 else 0 end) as JUL, sum(case foo.\"month\" when 7 then 1 else 0 end) as AUG,\n" +
+            "sum(case foo.\"month\" when 8 then 1 else 0 end) as SEP, sum(case foo.\"month\" when 9 then 1 else 0 end) as OCT,\n" +
+            "sum(case foo.\"month\" when 10 then 1 else 0 end) as NOV, sum(case foo.\"month\" when 11 then 1 else 0 end) as \"dec\"\n" +
+            "from (\n" +
+            "SELECT se.id ,se.legal_hid, se.title, se.publication_code, se.catalogue_for_period_id, rd.\"month\"\n" +
             "FROM public.subscription_element se \n" +
             "join regional_option ro on se.id = ro.subscription_element_id\n" +
             "join regional_version rv on rv.id = ro.regional_version_id\n" +
             "join reg_version_details rd on rv.id = rd.reg_version_id\n" +
-            "where  se.catalogue_for_period_id in (265,262,261,256,255,253,254,220,219,186,185,184,183,180,179,173,172) \n" +
-            "and ro.region_id = '908' and status = 'APPROVED'\n" +
+            "where  se.catalogue_for_period_id in ('173','220','172','185','186','180','179','219','183','253','255','254','256','184','262','261','265') \n" +
+            "and status = 'APPROVED'\n" +
             "and not se.legal_hid = ''\n" +
-            "group by se.id, se.legal_hid, se.title, se.publication_code, catalogue_for_period_id";
+            "group by se.id, se.legal_hid, se.title, se.publication_code, se.catalogue_for_period_id, rd.id\n" +
+            ") as foo group by foo.id ,foo.legal_hid, foo.title, foo.publication_code, foo.catalogue_for_period_id";
+
+    //('99','101','104','177','137','87','86','171','138','174','178','103','175','176','96','98','94','97','100','102') для 2018
+    //'173','220','172','185','186','180','179','219','183','253','255','254','256','184','262','261','265' для 2019
 
     private static String GET_PUBLOCATIONS_FOR_PUBLISHER = "select catalogue_for_period_id, publication_code, title from " +
             "subscription_element as se where legal_hid = '%s'\n" +
             "group by catalogue_for_period_id, publication_code, title";
 
-    private static String GET_CATALOG_PERIOD_LIST = "SELECT year, \"half\", id FROM public.catalog_period" +
-            " where year > 2016 and year < 2020 order by year, \"half\"";
+    private static String GET_CATALOG_PERIOD_LIST = "SELECT year, \\\"half\\\", id FROM public.catalog_period\" +\n" +
+            "            \" where year > 2016 and year < 2020 order by year, \\\"half\\\"";
 
     private static String GET_CATALOG_PERIOD_LIST_FOR_YEAR = "SELECT year, \"half\", id FROM public.catalog_period" +
             " where year = %s order by year, \"half\"";
@@ -71,10 +77,10 @@ public class ReportDaoImpl implements ReportDao {
             "FROM public.subscriptions s join bookings b on s.booking_id = b.booking_id\n" +
             "where s.publication_code = \'%s\' and s.publisher_id = \'%s\' and s.type = 'PRIMARY' and s.catalogue_id = %s";
 
-    private static String GET_SUBSCRIPTION_OUTPUT = "select alloc_by_msp FROM public.subscriptions where publisher_id " +
+    private static String GET_SUBSCRIPTION_OUTPUT = "select alloc_by_msp FROM public.subscriptions_for_reports where publisher_id " +
             "= '%s' and publication_code = '%s' and catalogue_id = %s and \"index\" = '%s'";
 
-    private static String GET_CATALOG_PRICE = "SELECT si.code, min_price, catalogue_msp_price_no_vat, publisher_selling_price, cp.selling_issue_price_no_vat, ro.vat FROM public.price_group pg\n" +
+    private static String GET_CATALOG_PRICE = "SELECT si.code, min_price, publisher_selling_price, catalogue_msp_price_no_vat, cp.selling_issue_price_no_vat, ro.vat FROM public.price_group pg\n" +
             "join catalogue_prices cp on pg.id = cp.price_group_id\n" +
             "join regional_option ro on pg.id = ro.price_group_id\n" +
             "join subscription_index si on cp.index_id = si.id\n" +
@@ -82,16 +88,18 @@ public class ReportDaoImpl implements ReportDao {
             "group by si.code, min_price, publisher_selling_price, catalogue_msp_price_no_vat, cp.selling_issue_price_no_vat, ro.vat";
 
     private static String GET_ALL_REPORT_ROWS = "select distinct legal_hid from report";
-
-    private static String GET_ALL_CONTRACT_PARAMS = "select cp.contract_id, cp.\"name\", cp.value FROM public.report r\n" +
-            "join contract c on c.legal_hid = r.legal_hid\n" +
-            "join contract_params cp on c.id = cp.contract_id\n" +
-            "where r.legal_hid = '%s' and c.\"year\" = 2019\n" +
-            "group by cp.contract_id, cp.\"name\", cp.value";
+    private static String GET_ALL_REPORT_ROWS_IDS = "select distinct id from report";
 
     private static String UPDATE_REPORT_DATA = "UPDATE public.report\n" +
-            "SET delivery_type='%s', region='%s'\n" +
+            "SET delivery_type='%s' \n" +
             "where legal_hid = '%s';";
+    private static String UPDATE_REPORT_DATA_REGION = "UPDATE public.report\n" +
+            "SET region='%s' \n" +
+            "where id = '%s';";
+
+    private static String GET_REGION_PLACE_BY_ID = "SELECT place, is_local FROM public.publication_info where id = %s";
+
+    private static String GET_DELIVERY_TYPES = "SELECT * FROM public.delivery_info WHERE legal_hid = '%s'";
 
     private static String contractUrl = "jdbc:postgresql://localhost:5432/contract";
     private static String urlCatalog = "jdbc:postgresql://localhost:5432/catalogue-service";
@@ -341,38 +349,88 @@ public class ReportDaoImpl implements ReportDao {
 
     @Override
     public void addReportParams(String publisher) {
-        List<ContractParams> contractParams = new ArrayList<>();
-        try (Connection con = DriverManager.getConnection(contractUrl, user, passwd);
-             PreparedStatement pst = con.prepareStatement(String.format(GET_ALL_CONTRACT_PARAMS, publisher));
+        List<DeliveryInfo> deliveryList = new ArrayList<>();
+        try (Connection con = DriverManager.getConnection(urlCatalog, user, passwd);
+             PreparedStatement pst = con.prepareStatement(String.format(GET_DELIVERY_TYPES, publisher));
              ResultSet rs = pst.executeQuery()) {
             while (rs.next()) {
-                contractParams.add(new ContractParams(rs.getInt(1), rs.getString(2), rs.getString(3)));
+                deliveryList.add(new DeliveryInfo(rs.getString(1), rs.getInt(2), rs.getString(3)));
             }
         } catch (SQLException ex) {
             System.err.println(ex.getMessage());
         }
-        String deliveryType = contractParams.stream().filter(param -> param.getName().equals("DELIVERY_TYPE"))
-                .findFirst().orElse(new ContractParams(11111,"Nope", "")).getValue();
-        String payer = contractParams.stream().filter(param -> param.getName().equals("CONTRACT_PAYER"))
-                .findFirst().orElse(new ContractParams(11111,"Nope", "")).getValue();
+        try (Connection con = DriverManager.getConnection(urlCatalog, user, passwd);
+             PreparedStatement pst = con.prepareStatement(String.format(GET_DELIVERY_TYPES, publisher));
+             ResultSet rs = pst.executeQuery()) {
+            while (rs.next()) {
+                deliveryList.add(new DeliveryInfo(rs.getString(1), rs.getInt(2), rs.getString(3)));
+            }
+        } catch (SQLException ex) {
+            System.err.println(ex.getMessage());
+        }
+        String deliveryType = deliveryList.stream().filter(info -> info.getPeriodId().equals(Integer.valueOf(173)) ||
+                info.getPeriodId().equals(Integer.valueOf(184))).findFirst().orElse(new DeliveryInfo("1111", 111, "")).getType();
+        //173,184 -2019
+        //87,102 -2018
         try {
             Connection con = DriverManager.getConnection(contractUrl, user, passwd);
             Statement st = con.createStatement();
-            st.execute(String.format(UPDATE_REPORT_DATA, getDelivery(deliveryType), getPayer(payer), publisher));
+            st.execute(String.format(UPDATE_REPORT_DATA, getDelivery(deliveryType),publisher));
             con.close();
         }  catch (SQLException ex) {
             System.err.println(ex.getMessage());
         }
     }
 
-    private String getPayer(String payer) {
+    @Override
+    public List<Integer> getReportElements() {
+        List<Integer> ids = new ArrayList<>();
+        try (Connection con = DriverManager.getConnection(contractUrl, user, passwd);
+             PreparedStatement pst = con.prepareStatement(GET_ALL_REPORT_ROWS_IDS);
+             ResultSet rs = pst.executeQuery()) {
+            while (rs.next()) {
+                ids.add(rs.getInt(1));
+            }
+        } catch (SQLException ex) {
+            System.err.println(ex.getMessage());
+        }
+        return ids;
+    }
+
+    @Override
+    public void addReportParamsRegion(Integer id) {
+        PlaceType type = new PlaceType();
+        try {
+            Connection con = DriverManager.getConnection(urlCatalog, user, passwd);
+            PreparedStatement pst = con.prepareStatement(String.format(GET_REGION_PLACE_BY_ID, id));
+            ResultSet rs = pst.executeQuery();
+            rs.next();
+            type.setType(rs.getString(1));
+            type.setIsLocal(rs.getBoolean(2));
+            con.close();
+        } catch (SQLException ex) {
+            System.err.println(ex.getMessage());
+        }
+        try {
+            Connection con = DriverManager.getConnection(contractUrl, user, passwd);
+            Statement st = con.createStatement();
+            st.execute(String.format(UPDATE_REPORT_DATA_REGION, getPayer(type), id));
+            con.close();
+        }  catch (SQLException ex) {
+            System.err.println(ex.getMessage());
+        }
+    }
+
+    private String getPayer(PlaceType type) {
         String value = "";
-        switch (payer) {
-            case "DEFAULT":
+        switch (type.getType()) {
+            case "FEDERAL":
                 value = "Федеральное";
                 break;
-            case "TCFPS":
-                value = "Районное";
+            case "REGIONAL":
+                if(type.getIsLocal()) {
+                    value = "Районное";
+                } else value = "Региональное";
                 break;
         }
         return value;

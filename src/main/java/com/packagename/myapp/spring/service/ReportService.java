@@ -135,5 +135,10 @@ public class ReportService {
         publishers.forEach(publisher -> {
             reportDao.addReportParams(publisher);
         });
+        List<Integer> elementIds = reportDao.getReportElements();
+        elementIds.forEach(id -> {
+            reportDao.addReportParamsRegion(id);
+        });
+        System.out.println("Ready");
     }
 }

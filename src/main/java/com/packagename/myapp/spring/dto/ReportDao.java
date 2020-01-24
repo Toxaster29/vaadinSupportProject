@@ -34,4 +34,8 @@ public interface ReportDao {
     List<String> getReportPublishers();
 
     void addReportParams(String publisher);
+
+    List<Integer> getReportElements();
+
+    void addReportParamsRegion(Integer id);
 }

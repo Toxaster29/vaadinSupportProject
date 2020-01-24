@@ -13,6 +13,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -41,13 +43,12 @@ public class ExcelParserLayout extends VerticalLayout {
         Button changeContractDataButton = new Button("Change data");
         changeContractDataButton.addClickListener(click -> {
             publisherFromExcelList.forEach(publisher -> {
-                publisher.setHid(excelParserDao.getHidByPublisherParams(withoutE(publisher.getInn()), publisher.getPublisherName()));
-                if (publisher.getHid() == null) {
-                    //System.out.println(String.format("%s %s", withoutE(publisher.getInn()), publisher.getPublisherName()));
-                } else {
-                    if (excelParserDao.setNmcToPublisher(publisher)) System.out.println("Nooo");
-                }
+                List<Integer> ids = excelParserDao.setNmcToPublisher(publisher);
+                if (ids.size() > 0) {
+                    excelParserDao.updateNmc(publisher, ids);
+                } else System.out.println(publisher.getHid());
             });
+            System.out.println("Complete");
         });
         add(upload, changeContractDataButton);
     }
@@ -60,14 +61,6 @@ public class ExcelParserLayout extends VerticalLayout {
             System.err.println(e.getMessage());
         }
         return null;
-    }
-
-    private String withoutE(String valueOf) {
-        if (valueOf.contains(".") && valueOf.indexOf('E') > -1) {
-            String value = valueOf.replace(".", "");
-            return value.substring(0, value.indexOf('E'));
-        }
-        return valueOf;
     }
 
 }

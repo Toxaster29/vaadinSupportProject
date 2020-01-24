@@ -6,61 +6,53 @@ import org.springframework.stereotype.Repository;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Repository
 public class ExcelParserDaoImpl implements ExcelParserDao {
 
-    private static String GET_PUBLISHER_HID = "SELECT legal_hid, \"name\", publisher_name FROM public.publisher where inn = '%s'";
-    private static String GET_PUBLISHER_HID_BY_NAME = "SELECT legal_hid FROM public.publisher where \"name\" = '%s' or publisher_name = '%s'";
+    private static String GET_CONTRACT_IDS = "select id from(SELECT * FROM public.contract where legal_hid =" +
+            " '%s' and doc_type = 'DELIVERY' and status = 'DRAFT') as foo\n" +
+            "where \"year\" = 2019 and half = 2 or \"year\" = 2020 and half = 1";
+    private static String UPDATE_NMC_VALUE = "UPDATE public.contract_params \n" +
+            "SET value='%s' \n" +
+            "WHERE contract_id in (%s) and name = 'NMC'";
 
-    private static String partnerstUrl = "jdbc:postgresql://localhost:5432/subs_partners";
-    private static String contractUrl = "jdbc:postgresql://localhost:5432/contract";
+    private static String contractUrl = "jdbc:postgresql://localhost:8686/contract";
     private static String user = "postgres";
     private static String passwd = "123";
 
     @Override
-    public String getHidByPublisherParams(String inn, String publisherName) {
-        List<PublisherFromExcel> publishers = new ArrayList<>();
-        String hid = getHidByPublisherName(publisherName);
-        if (hid != null) {
-            return hid;
-        }
-        try (Connection con = DriverManager.getConnection(partnerstUrl, user, passwd);
-             PreparedStatement pst = con.prepareStatement(String.format(GET_PUBLISHER_HID, inn));
-             ResultSet rs = pst.executeQuery()) {
+    public List<Integer> setNmcToPublisher(PublisherFromExcel publisher) {
+        List<Integer> ids = new ArrayList<>();
+        try {
+            Connection con = DriverManager.getConnection(contractUrl, user, passwd);
+            PreparedStatement pst = con.prepareStatement(String.format(GET_CONTRACT_IDS, publisher.getHid()));
+            ResultSet rs = pst.executeQuery();
             while (rs.next()) {
-                publishers.add(new PublisherFromExcel(rs.getString(2), inn, null, rs.getString(1), rs.getString(3)));
+                ids.add(rs.getInt(1));
             }
+            con.close();
         } catch (SQLException ex) {
             System.err.println(ex.getMessage());
         }
-        if (publishers.size() == 1) {
-            return publishers.get(0).getHid();
-        } else if(publishers.size() > 1) {
-            return publishers.stream().filter(pb -> pb.getPublisherName().equals(publisherName.trim())
-                    || pb.getSecondName().equals(publisherName.trim())).findFirst()
-                    .orElse(new PublisherFromExcel()).getHid();
-        }
-        return null;
+        return ids;
     }
 
     @Override
-    public boolean setNmcToPublisher(PublisherFromExcel publisher) {
-        return false;
-    }
-
-    private String getHidByPublisherName(String publisherName) {
-        String hid = null;
-        try (Connection con = DriverManager.getConnection(partnerstUrl, user, passwd);
-             PreparedStatement pst = con.prepareStatement(String.format(GET_PUBLISHER_HID_BY_NAME, publisherName.trim(),
-                     publisherName.trim()));
-             ResultSet rs = pst.executeQuery()) {
-            while (rs.next()) {
-                hid = rs.getString(1);
-            }
-        } catch (SQLException ex) {
+    public void updateNmc(PublisherFromExcel publisher, List<Integer> ids) {
+        String lineIds = getIdLine(ids);
+        try {
+            Connection con = DriverManager.getConnection(contractUrl, user, passwd);
+            Statement st = con.createStatement();
+            st.execute(String.format(UPDATE_NMC_VALUE, publisher.getPrice() + ".00", lineIds));
+            con.close();
+        }  catch (SQLException ex) {
             System.err.println(ex.getMessage());
         }
-        return hid;
+    }
+
+    private String getIdLine(List<Integer> ids) {
+        return ids.stream().map(String::valueOf).collect(Collectors.joining(","));
     }
 }

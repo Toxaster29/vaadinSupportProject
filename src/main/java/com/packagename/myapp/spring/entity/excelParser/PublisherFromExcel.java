@@ -15,6 +15,6 @@ public class PublisherFromExcel {
     private String inn;
     private Integer price;
     private String hid;
-    private String secondName;
+    private String manager;
 
 }

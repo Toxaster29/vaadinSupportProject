@@ -5,10 +5,10 @@ import lombok.Getter;
 
 @AllArgsConstructor
 @Getter
-public class ContractParams {
+public class DeliveryInfo {
 
-    private Integer contractId;
-    private String name;
-    private String value;
+    private String hid;
+    private Integer periodId;
+    private String type;
 
 }

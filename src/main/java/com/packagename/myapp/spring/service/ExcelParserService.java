@@ -187,8 +187,16 @@ public class ExcelParserService {
                             break;
                         case 3:
                             if (currentCell.getCellTypeEnum().equals(CellType.STRING)) {
-                                fromExcel.setInn(String.valueOf(currentCell.getStringCellValue()));
+                                fromExcel.setInn(currentCell.getStringCellValue());
                             } else fromExcel.setInn(String.valueOf(currentCell.getNumericCellValue()));
+                            break;
+                        case 4:
+                            if (currentCell.getCellTypeEnum().equals(CellType.STRING)) {
+                                fromExcel.setHid(currentCell.getStringCellValue().trim());
+                            } else fromExcel.setHid(String.valueOf(BigDecimal.valueOf(currentCell.getNumericCellValue()).setScale(0)));
+                            break;
+                        case 5:
+                            fromExcel.setManager(currentCell.getStringCellValue());
                             break;
                     }
                 }

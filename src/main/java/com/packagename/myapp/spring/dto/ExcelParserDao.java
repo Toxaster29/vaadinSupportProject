@@ -2,8 +2,10 @@ package com.packagename.myapp.spring.dto;
 
 import com.packagename.myapp.spring.entity.excelParser.PublisherFromExcel;
 
-public interface ExcelParserDao {
-    String getHidByPublisherParams(String inn, String publisherName);
+import java.util.List;
 
-    boolean setNmcToPublisher(PublisherFromExcel publisher);
+public interface ExcelParserDao {
+    List<Integer> setNmcToPublisher(PublisherFromExcel publisher);
+
+    void updateNmc(PublisherFromExcel publisher, List<Integer> ids);
 }
