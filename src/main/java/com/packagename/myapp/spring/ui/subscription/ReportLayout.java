@@ -40,8 +40,12 @@ public class ReportLayout extends VerticalLayout {
         Button addDataToReport = new Button("Add data");
         addDataToReport.addClickListener(click -> {
            reportService.addDataToReport();
-    });
-        add(generateReportButton, publisherIdField, generatePublisherReportButton, addDataToReport);
+        });
+        Button childrenDataReport = new Button("Children publications report");
+        childrenDataReport.addClickListener(click -> {
+            reportService.createChildrenDataReport();
+        });
+        add(generateReportButton, publisherIdField, generatePublisherReportButton, addDataToReport, childrenDataReport);
     }
 
     private void initHeader() {

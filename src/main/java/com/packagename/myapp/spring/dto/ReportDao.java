@@ -38,4 +38,8 @@ public interface ReportDao {
     List<Integer> getReportElements();
 
     void addReportParamsRegion(Integer id);
+
+    List<ChildrenSubscriptionEntity> getSubscriptionDataForChildrenReport();
+
+    void setSubscriptionMonthCount(ChildrenSubscriptionEntity entity);
 }

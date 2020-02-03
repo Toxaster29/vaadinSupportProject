@@ -1,11 +1,16 @@
 package com.packagename.myapp.spring.service;
 
 import com.packagename.myapp.spring.dto.ReportDao;
+import com.packagename.myapp.spring.entity.insert.EmailPhone;
 import com.packagename.myapp.spring.entity.report.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.PrintWriter;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -140,5 +145,36 @@ public class ReportService {
             reportDao.addReportParamsRegion(id);
         });
         System.out.println("Ready");
+    }
+
+    public void createChildrenDataReport() {
+        List<ChildrenSubscriptionEntity> subscriptionEntityList = reportDao.getSubscriptionDataForChildrenReport();
+        subscriptionEntityList.forEach(entity -> {
+            reportDao.setSubscriptionMonthCount(entity);
+        });
+        writeToFile(subscriptionEntityList);
+        System.out.println("Ok");
+    }
+
+    private void writeToFile(List<ChildrenSubscriptionEntity> entities) {
+        PrintWriter pw = null;
+        try {
+            pw = new PrintWriter(new FileWriter("C:\\Users\\assze\\Desktop\\reportChildren.txt"));
+            for (ChildrenSubscriptionEntity entity : entities) {
+                pw.write(entity.getPublicationCode() + "\t" + entity.getIndex() + "\t"
+                        + entity.getTotalPrice() + "\t" + entity.getTotalCount() + "\n");
+            }
+            pw.close();
+        } catch (Exception e) {
+            System.out.println(e);
+        } finally {
+            try {
+                if (pw != null) {
+                    pw.close();
+                }
+            } catch (Exception e) {
+                System.out.println(e);
+            }
+        }
     }
 }
