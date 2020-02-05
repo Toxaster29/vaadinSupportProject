@@ -1,6 +1,8 @@
 package com.packagename.myapp.spring.ui.subscription;
 
+import com.packagename.myapp.spring.dto.InsertDao;
 import com.packagename.myapp.spring.entity.schedule.PublisherSchedule;
+import com.packagename.myapp.spring.entity.schedule.PublisherWithContract;
 import com.packagename.myapp.spring.entity.schedule.ScheduleDates;
 import com.packagename.myapp.spring.service.ExcelParserService;
 import com.vaadin.flow.component.button.Button;
@@ -11,6 +13,7 @@ import com.vaadin.flow.component.upload.receivers.MemoryBuffer;
 import com.vaadin.flow.router.Route;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.ResponseHandler;
+import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -18,14 +21,19 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PrintWriter;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Route("schedule")
 public class ScheduleView extends VerticalLayout {
+
+    private InsertDao insertDao;
 
     private ExcelParserService excelParserService;
 
@@ -33,8 +41,9 @@ public class ScheduleView extends VerticalLayout {
 
     private int startRow = 3;
 
-    public ScheduleView(@Autowired ExcelParserService excelParserService) {
+    public ScheduleView(@Autowired ExcelParserService excelParserService, @Autowired InsertDao insertDao) {
         this.excelParserService = excelParserService;
+        this.insertDao = insertDao;
         initHeader();
         initUploadLayout();
     }
@@ -56,7 +65,64 @@ public class ScheduleView extends VerticalLayout {
             });
             System.out.println("End");
         });
-        add(upload, changeDates);
+        Button forAllPublisherButton = new Button("For all publishers");
+        forAllPublisherButton.addClickListener(click -> {
+           createAllSchedules();
+        });
+        add(upload, changeDates, forAllPublisherButton);
+    }
+
+    private void createAllSchedules() {
+        List<String> publisherWithSchedule = insertDao.getPublishersWithSchedule();
+        List<PublisherWithContract> publisherWithContracts = insertDao.getAllPublisherByYearAndHalf(publisherWithSchedule);
+        publisherWithContracts.forEach(insertDao::setContractIdForPublisher);
+        List<PublisherWithContract> federalOrRegional = new ArrayList<>();
+        List<PublisherWithContract> local = new ArrayList<>();
+        publisherWithContracts.forEach(publisher -> {
+            if (publisher.getIsLocal()) {
+                local.add(publisher);
+            } else federalOrRegional.add(publisher);
+        });
+        generateJsonForPublisherWithContract(federalOrRegional, local);
+        System.out.println("Normal");
+    }
+
+
+    private void generateJsonForPublisherWithContract(List<PublisherWithContract> federalOrRegional, List<PublisherWithContract> local) {
+        String forLocalPublisher = generateJsonText(local);
+        String forFederalOrRegionalPublisher = generateJsonText(federalOrRegional);
+        writeToFile(forLocalPublisher, "local");
+        writeToFile(forFederalOrRegionalPublisher, "federalOrRegional");
+    }
+
+    private String generateJsonText(List<PublisherWithContract> local) {
+        String publisherText = "";
+        for (PublisherWithContract publisher : local) {
+            publisherText += String.format("{\n" +
+                    "        \"publisherId\": \"%s\",\n" +
+                    "        \"contractId\": \"%s\"\n" +
+                    "    },\n", publisher.getHid(), publisher.getContractId() != null ? publisher.getContractId() : "-");
+        }
+        return publisherText;
+    }
+
+    private void writeToFile(String text, String fileName) {
+        PrintWriter pw = null;
+        try {
+            pw = new PrintWriter(new FileWriter(String.format("C:\\Users\\assze\\Desktop\\%s.txt", fileName)));
+            pw.write(text);
+            pw.close();
+        } catch (Exception e) {
+            System.out.println(e);
+        } finally {
+            try {
+                if (pw != null) {
+                    pw.close();
+                }
+            } catch (Exception e) {
+                System.out.println(e);
+            }
+        }
     }
 
     private void loadDatesToService(String publisherId, String contractId, ScheduleDates dates) {
