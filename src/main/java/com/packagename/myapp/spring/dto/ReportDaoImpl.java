@@ -427,25 +427,13 @@ public class ReportDaoImpl implements ReportDao {
         List<ChildrenSubscriptionEntity> subscriptionEntities = new ArrayList<>();
         String sql = "SELECT publication_code, \"index\", sum(price_for_period) FROM public.subscriptions s\n" +
                 "join bookings b on b.booking_id = s.booking_id\n" +
-                "where b.source_type = 0 and publication_code in ('П9686','ПР953','П9673','ПР974','ПР975','ПР978','ПР981','ПР982','ПР986','ПР984','ПР985','П2103','П8442','ПР997',\n" +
-                "'П7117','П8385','П2461','ПР945','П4486','П2927','П3354','П8380','П2417','П1963','П1964','П4681','П1926','П3637','П3206','П1142','П7206','П3329','П2937','П6633',\n" +
-                "'П2229','П2032','ПА553','П7122','П8386','ПР070','П7125','П3506','П7123','ПР970','П2968','П6344','П5119','П1587','П1050','П1589','П2240','П2777','П3961','П4229',\n" +
-                "'П3338','П2361','П2341','П3180','П5363','П3349','П2903','ПР908','П2558','П1643','П2457','П4301','П8221','П5280','ПР812','П3113','П2342','П2372','П8403','П3353',\n" +
-                "'П2036','П4230','П4885','ПА277','П2775','П1124','П7162','П2523','П2283','П1593','П7160','П3427','ПА385','ПР347','П7156','П4452','П2532','П7018','П1866','ПР090',\n" +
-                "'П1247', 'ПА570', 'П7034', 'П4285', 'ПР111', 'П6215', 'П2105', 'П1023', 'П1025', 'П4680', 'П3808', 'ПР730', 'П1043', 'П1645', 'П1068', 'П1900', 'П2033', 'П5062',\n" +
-                "'П1049', 'П1046', 'П3807', 'П3119', 'ПА421', 'П2246', 'П5121', 'П5124', 'П8383', 'П5120', 'П5143', 'П5122', 'П5938', 'П5127', 'П5371', 'П2183', 'П2336', 'П2339',\n" +
-                "'П2302', 'П2236', 'П3883', 'П6513', 'П1220', 'ПА070', 'П2972', 'ПА539', 'П3339', 'ПА434', 'ПА451', 'П4529', 'П6314', 'П4827', 'П6340', 'П2275', 'П7157', 'П5813',\n" +
-                "'П2303', 'П4530', 'П4533', 'П4534', 'П7165', 'П4451', 'П4455', 'П1271', 'П2384', 'П2804', 'П1614', 'П5485', 'П8256', 'П4983','П7172', 'П3758', 'П5376', 'П1882',\n" +
-                "'П1622','П5140', 'П8950', 'П4535', 'П1251', 'П6411', 'П4536', 'П4629', 'П2334', 'П4696', 'П3039')\n" +
-                "and s.created_date between '2018-11-01 00:00:00' and '2018-12-31 23:59:59' and b.state in (2,4)\n" + //меняем год
-                "and s.catalogue_id in %s and b.region_code in ('61','5','8','9','12','59','14','908','36','19','21','22','24','83','30','31','35','37','41','15','44','47','48','50','85'," +
-                "'17','81','38','40','56','51','52','33','53','57','58','60','23','64','67','16','73','75','1','3','13','20','28','32','34','45','46','72','39','7','10','26','43','29'," +
-                "'63','77','55','65','66','70','2','18','71','27','42','49','82','62','68','79')\n" +
+                "where b.source_type = 0 and s.created_date between '2019-11-01 00:00:00' \n" +
+                "and '2019-12-31 23:59:59' and b.state in (2,4)and s.catalogue_id in %s\n" +
                 "group by publication_code, \"index\"";
         String catalogIds2019y1h = "('173','220','172','185','186','180','179','219')";
         String catalogIds2020y1h = "('263','269','268','272','267','266','264')";
         try (Connection con = DriverManager.getConnection(urlSub, user, passwd);
-             PreparedStatement pst = con.prepareStatement(String.format(sql, catalogIds2019y1h));
+             PreparedStatement pst = con.prepareStatement(String.format(sql, catalogIds2020y1h));
              ResultSet rs = pst.executeQuery()) {
             while (rs.next()) {
                 subscriptionEntities.add(new ChildrenSubscriptionEntity(rs.getString(1), rs.getString(2),
@@ -463,14 +451,12 @@ public class ReportDaoImpl implements ReportDao {
         String sql = "SELECT alloc_by_msp FROM public.subscriptions s\n" +
                 "join bookings b on b.booking_id = s.booking_id\n" +
                 "where b.source_type = 0 and s.publication_code = '%s' and s.\"index\" = '%s'\n" +
-                "and s.created_date between '2018-11-01 00:00:00' and '2018-12-31 23:59:59' and b.state in (2,4)\n" +
-                "and s.catalogue_id in %s and b.region_code in ('61','5','8','9','12','59','14','908','36','19','21','22','24','83','30','31','35','37','41','15','44','47','48','50','85',\n" +
-                "'17','81','38','40','56','51','52','33','53','57','58','60','23','64','67','16','73','75','1','3','13','20','28','32','34','45','46','72','39','7','10','26','43','29',\n" +
-                "'63','77','55','65','66','70','2','18','71','27','42','49','82','62','68','79')";
+                "and s.created_date between '2019-11-01 00:00:00' and '2019-12-31 23:59:59' and b.state in (2,4)\n" +
+                "and s.catalogue_id in %s";
         String catalogIds2019y1h = "('173','220','172','185','186','180','179','219')";
         String catalogIds2020y1h = "('263','269','268','272','267','266','264')";
         try (Connection con = DriverManager.getConnection(urlSub, user, passwd);
-             PreparedStatement pst = con.prepareStatement(String.format(sql, entity.getPublicationCode(), entity.getIndex(), catalogIds2019y1h));
+             PreparedStatement pst = con.prepareStatement(String.format(sql, entity.getPublicationCode(), entity.getIndex(), catalogIds2020y1h));
              ResultSet rs = pst.executeQuery()) {
             while (rs.next()) {
                 allocs.add(rs.getString(1));

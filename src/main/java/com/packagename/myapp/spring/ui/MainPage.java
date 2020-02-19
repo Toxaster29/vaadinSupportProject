@@ -100,8 +100,12 @@ public class MainPage extends VerticalLayout {
         ufpsButton.addClickListener(click -> {
            ufpsButton.getUI().ifPresent(ui -> ui.navigate("ufps"));
         });
+        Button annulmentButton = new Button("Annulment");
+        annulmentButton.addClickListener(click -> {
+            annulmentButton.getUI().ifPresent(ui -> ui.navigate("annulment"));
+        });
         HorizontalLayout secondLineButtons = new HorizontalLayout(magazineButton, avatarButton, excelParserButton, cstButton,
-                dbInsertButton, ufpsButton);
+                dbInsertButton, ufpsButton, annulmentButton);
         subscriptionLayout.add(inlineButtons, secondLineButtons);
         add(subscriptionLayout);
     }
