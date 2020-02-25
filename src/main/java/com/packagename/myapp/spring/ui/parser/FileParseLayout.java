@@ -58,6 +58,7 @@ public class FileParseLayout extends VerticalLayout {
     private List<STopicIn> topicInList = new ArrayList<>();
     private List<SArea> areaList = new ArrayList<>();
     private List<ConnectivityThematicEntity> connectivityThematicEntities = new ArrayList<>();
+    private List<Complex> complexList = new ArrayList<>();
     private String selectedCaption = "";
     private Format endJson = new Format();
 
@@ -187,7 +188,7 @@ public class FileParseLayout extends VerticalLayout {
         parseService.fillTerrainParams(areaList, endJson);
         //parseService.uploadConnectionThematicToDB(connectivityThematicEntities); //Используется для заполнения связи тематик в бд (весь список) при изменении справочников
         parseService.fillCampaignParams(publications, endJson, connectivityThematicEntities, topicInList, indexList,
-                priceList, halfYear, yearFieldValue, acceptSelectValue);
+                priceList, halfYear, yearFieldValue, acceptSelectValue, complexList);
         newFormatResultDialog.open();
         newFormatResultDialog.buildDialog(endJson);
     }
@@ -266,6 +267,9 @@ public class FileParseLayout extends VerticalLayout {
                         break;
                     case "I_FCAPTION":
                         captionList.add(line.substring(point));
+                        break;
+                    case "S_COMPLEX":
+                        complexList.add(new Complex(parseService.parseLine(line.substring(point))));
                         break;
                 }
             }

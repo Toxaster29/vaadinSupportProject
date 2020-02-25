@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -21,9 +22,13 @@ public class DocumentParseService {
     @Autowired
     private ParserDao parserDao;
 
+    private static String FOR_ALL_TEXT = "для всех";
+    private static String FOR_PHYSICS_TEXT = "для физических лиц";
+    private static String FOR_INDIVIDUAL_TEXT = "для индивидуальных подписчиков";
+
     public void fillCampaignParams(List<SPublication> publications, Format endJson, List<ConnectivityThematicEntity> thematicEntities,
                                    List<STopicIn> topicInList, List<SIndex> indexList, List<SPrice> priceList,
-                                   String halfYear, String yearFieldValue, Accept acceptSelectValue) {
+                                   String halfYear, String yearFieldValue, Accept acceptSelectValue, List<Complex> complexList) {
         List<Campaign> campaignList = new ArrayList<>();
         List<Publication> publicationList = getPublicationParams(publications, endJson, thematicEntities, topicInList, indexList, priceList);
         campaignList.add(new Campaign(
@@ -31,7 +36,8 @@ public class DocumentParseService {
                 Byte.valueOf(halfYear),
                 setAcceptByParam(acceptSelectValue),
                 publicationList,
-                getCatalogParams(indexList, endJson, publications, priceList, publicationList, yearFieldValue, halfYear)));
+                getCatalogParams(indexList, endJson, publications, priceList, publicationList, yearFieldValue, halfYear,
+                        acceptSelectValue.getId(), complexList)));
         endJson.setCampaign(campaignList);
     }
 
@@ -41,33 +47,49 @@ public class DocumentParseService {
         return acceptList;
      }
 
-    private List<Catalog> getCatalogParams(List<SIndex> indexList, Format endJson, List<SPublication> publications
-            , List<SPrice> priceList, List<Publication> publicationList, String yearFieldValue, String halfYear) {
+    private List<Catalog> getCatalogParams(List<SIndex> indexList, Format endJson, List<SPublication> publications,
+                                           List<SPrice> priceList, List<Publication> publicationList, String yearFieldValue,
+                                           String halfYear, Integer acceptId, List<Complex> complexList) {
         List<Catalog> catalogList = new ArrayList<>();
         indexList.forEach(sIndex -> {
             SPublication sPublication = getPublicationById(sIndex.getPublicationId(), publications);
             catalogList.add(new Catalog(
                     sIndex.getId(),
                     sIndex.getComplexName(),
-                    null,
+                    sIndex.getDescription(),
                     sIndex.getAgencyId(),
                     null,
                     getExpeditionIdByName(sIndex.getSystem(), endJson.getExpedition()),
-                    null,
+                    getClientIdTypeByName(sIndex.getSubsCategory(), endJson.getClient()),
                     null,
                     getTermByPublicationData(sPublication, yearFieldValue, halfYear),
-                    getSubVersion(publicationList, sPublication),
-                    getSubVariant(sIndex.getId(), priceList, endJson.getVat())));
+                    getSubVersion(publicationList, sPublication, complexList, sIndex.getId()),
+                    getSubVariant(sIndex.getId(), priceList, endJson.getVat(), acceptId)));
         });
         return catalogList;
     }
 
-    private List<SubsVariant> getSubVariant(String id, List<SPrice> priceList, List<Directory> vat) {
+    private Integer getClientIdTypeByName(String subsCategory, List<Directory> client) {
+        if (FOR_ALL_TEXT.toUpperCase().equals(subsCategory.toUpperCase())) {
+            return 7; //TODO захордкожено по описанию формата возможно лучше переделать потом
+        } else if (FOR_PHYSICS_TEXT.toUpperCase().equals(subsCategory.toUpperCase())) {
+            return 5;
+        }  else if (FOR_INDIVIDUAL_TEXT.toUpperCase().equals(subsCategory.toUpperCase())) {
+            return 1;
+        } else {
+            for (Directory directory : client) {
+                if (subsCategory.toUpperCase().equals(directory.getName().toUpperCase())) return directory.getId();
+            }
+        }
+        return null;
+    }
+
+    private List<SubsVariant> getSubVariant(String id, List<SPrice> priceList, List<Directory> vat, Integer acceptId) {
         List<SubsVariant> subsVariants = new ArrayList<>();
         for (SPrice price : priceList) {
             if (price.getIndexId().equals(id)) {
                 subsVariants.add(new SubsVariant(
-                        null,
+                        acceptId,
                         null,
                         price.getMsp(),
                         getPriceFromPriceWithVat(price.getPriceAndNDS()),
@@ -94,22 +116,29 @@ public class DocumentParseService {
         return Integer.parseInt(endPrice);
     }
 
-    private List<SubsVersion> getSubVersion(List<Publication> publications, SPublication sPublication) {
+    private List<SubsVersion> getSubVersion(List<Publication> publications, SPublication sPublication, List<Complex> complexList, String id) {
         List<SubsVersion> subsVersions = new ArrayList<>();
-        Publication publication = null;
-        if (sPublication != null) {
-            for (Publication publ : publications) {
-                if (publ.getId().equals(getIdWithoutLetter(sPublication.getId()))) {
-                    publication = publ;
+        List<String> indexesFromComplex = complexList.stream().filter(c -> c.getIndexComplex().equals(id))
+                .map(Complex::getIndexInclude).collect(Collectors.toList());
+        if (indexesFromComplex.isEmpty()) {
+            subsVersions.addAll(getSubVersionFromPublication(sPublication.getId(), publications));
+        } else {
+            indexesFromComplex.forEach(index -> {
+                subsVersions.addAll(getSubVersionFromPublication(index, publications));
+            });
+        }
+        return subsVersions;
+    }
+
+    private List<SubsVersion> getSubVersionFromPublication(String index, List<Publication> publications) {
+        List<SubsVersion> subsVersions = new ArrayList<>();
+        for (Publication publ : publications) {
+                if (publ.getId().equals(getIdWithoutLetter(index))) {
+                    publ.getPublVersion().forEach(version -> {
+                        subsVersions.add(new SubsVersion(publ.getId(), version.getId()));
+                    });
                     break;
                 }
-            }
-            if (publication != null) {
-                Publication finalPublication = publication;
-                publication.getPublVersion().forEach(version -> {
-                    subsVersions.add(new SubsVersion(finalPublication.getId(), version.getId())); //TODO разобраться с идентификаторами у PublVersion
-                });
-            }
         }
         return subsVersions;
     }
@@ -176,7 +205,7 @@ public class DocumentParseService {
 
     private Integer getExpeditionIdByName(String system, List<Directory> expedition) {
         for (Directory exp : expedition) {
-            if (exp.getName().toUpperCase().equals(system.toUpperCase())) return exp.getId();
+            if (exp.getName().toUpperCase().equals(system.toUpperCase().trim())) return exp.getId();
         }
         return null;
     }

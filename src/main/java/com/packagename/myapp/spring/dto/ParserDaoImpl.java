@@ -68,7 +68,7 @@ public class ParserDaoImpl implements ParserDao {
     @Override
     public void uploadConnectionData(List<ConnectionThematic> connectionThematicList) {
         String sql = "INSERT INTO public.connection_thematic\n" +
-                "(oldi_d, old_name, new_id)\n" +
+                "(old_id, old_name, new_id)\n" +
                 "VALUES \n";
         for (ConnectionThematic thematic : connectionThematicList) {
             sql += String.format(("(\'%s\',\'%s\',\'%s\'),"), thematic.getOldId(), thematic.getOldName(), thematic.getNewIds());

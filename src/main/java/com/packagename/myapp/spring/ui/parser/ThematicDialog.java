@@ -53,7 +53,7 @@ public class ThematicDialog extends Dialog {
             onConfirmAction.run();
             close();
         });
-        VerticalLayout mainLayout = new VerticalLayout(headerLabel, searchLine,directoryGrid, confirmButton);
+        VerticalLayout mainLayout = new VerticalLayout(headerLabel, searchLine, directoryGrid, confirmButton);
         mainLayout.setSpacing(false);
         mainLayout.setSizeFull();
         mainLayout.setAlignItems(FlexComponent.Alignment.CENTER);
