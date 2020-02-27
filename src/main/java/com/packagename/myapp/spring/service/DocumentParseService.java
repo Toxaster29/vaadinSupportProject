@@ -4,13 +4,13 @@ import com.packagename.myapp.spring.dto.ParserDao;
 import com.packagename.myapp.spring.entity.parser.DirectoryData;
 import com.packagename.myapp.spring.entity.parser.newFormat.*;
 import com.packagename.myapp.spring.entity.parser.oldFormat.*;
+import com.vaadin.flow.component.ItemLabelGenerator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -28,7 +28,7 @@ public class DocumentParseService {
 
     public void fillCampaignParams(List<SPublication> publications, Format endJson, List<ConnectivityThematicEntity> thematicEntities,
                                    List<STopicIn> topicInList, List<SIndex> indexList, List<SPrice> priceList,
-                                   String halfYear, String yearFieldValue, Accept acceptSelectValue, List<Complex> complexList) {
+                                   String halfYear, String yearFieldValue, Accept acceptSelectValue, List<Complex> complexList, Directory distribution) {
         List<Campaign> campaignList = new ArrayList<>();
         List<Publication> publicationList = getPublicationParams(publications, endJson, thematicEntities, topicInList, indexList, priceList);
         campaignList.add(new Campaign(
@@ -37,7 +37,7 @@ public class DocumentParseService {
                 setAcceptByParam(acceptSelectValue),
                 publicationList,
                 getCatalogParams(indexList, endJson, publications, priceList, publicationList, yearFieldValue, halfYear,
-                        acceptSelectValue.getId(), complexList)));
+                        acceptSelectValue.getId(), complexList, distribution)));
         endJson.setCampaign(campaignList);
     }
 
@@ -49,7 +49,7 @@ public class DocumentParseService {
 
     private List<Catalog> getCatalogParams(List<SIndex> indexList, Format endJson, List<SPublication> publications,
                                            List<SPrice> priceList, List<Publication> publicationList, String yearFieldValue,
-                                           String halfYear, Integer acceptId, List<Complex> complexList) {
+                                           String halfYear, Integer acceptId, List<Complex> complexList, Directory distribution) {
         List<Catalog> catalogList = new ArrayList<>();
         indexList.forEach(sIndex -> {
             SPublication sPublication = getPublicationById(sIndex.getPublicationId(), publications);
@@ -58,11 +58,11 @@ public class DocumentParseService {
                     sIndex.getComplexName(),
                     sIndex.getDescription(),
                     sIndex.getAgencyId(),
-                    null,
+                    distribution.getId(),
                     getExpeditionIdByName(sIndex.getSystem(), endJson.getExpedition()),
                     getClientIdTypeByName(sIndex.getSubsCategory(), endJson.getClient()),
                     null,
-                    getTermByPublicationData(sPublication, yearFieldValue, halfYear),
+                    getTerm(sIndex.getId(), yearFieldValue, halfYear),
                     getSubVersion(publicationList, sPublication, complexList, sIndex.getId()),
                     getSubVariant(sIndex.getId(), priceList, endJson.getVat(), acceptId)));
         });
@@ -143,23 +143,19 @@ public class DocumentParseService {
         return subsVersions;
     }
 
-    private List<Term> getTermByPublicationData(SPublication sPublication, String yearFieldValue, String halfYear) {
+    private List<Term> getTerm(String index, String yearFieldValue, String halfYear) {
         List<Term> terms = new ArrayList<>();
-        if (sPublication != null) {
-            Byte mspMonth = halfYear.equals("1") ? (byte) 1 : (byte) 7;
-            Integer year = Integer.valueOf(yearFieldValue);
-            String[] dates = sPublication.getDates().split(",");
-            if (dates.length > 0) {
-                for (int i = 1; i<=dates.length; i++) {
-                    List<Integer> day = getDateFromLine(dates[i-1]);
-                    if (!day.isEmpty()) {
-                        for (Integer date : day) {
-                            try {
-                                terms.add(new Term(mspMonth, LocalDate.of(year, i, date)));
-                            } catch (Exception e) {
-                                System.out.println(e);
-                            }
-                        }
+        if (verifyYearIndex(index)) {
+
+        } else {
+            if (!halfYear.isEmpty() && !yearFieldValue.isEmpty()) {
+                if (halfYear.equals("2")) {
+                    for (int i = 7; i < 13; i ++) {
+                        terms.add(new Term((byte) i, LocalDate.of(Integer.valueOf(yearFieldValue), i, 25).minusMonths(1)));
+                    }
+                } else {
+                    for (int i = 1; i < 7; i ++) {
+                        terms.add(new Term((byte) i, LocalDate.of(Integer.valueOf(yearFieldValue), i, 25).minusMonths(1)));
                     }
                 }
             }
@@ -167,33 +163,9 @@ public class DocumentParseService {
         return terms;
     }
 
-    private List<Integer> getDateFromLine(String date) {
-        List<Integer> dates = new ArrayList<>();
-        if (!date.isEmpty()) {
-            Pattern patternLongDate = Pattern.compile("[0-9]{2}.[0-9]{2}.[0-9]{4}");
-            Matcher matcherLongDate = patternLongDate.matcher(date);
-            Pattern patternNumeric = Pattern.compile("[0-9]+");
-            if (matcherLongDate.find()) {
-                while(matcherLongDate.find()) {
-                    dates.add(Integer.parseInt(date.substring(matcherLongDate.start(), matcherLongDate.start() + 1)));
-                }
-            } else if (date.contains("№")) {
-                if (date.indexOf(":") > 0) {
-                    String dateWithoutNumber = date.substring(date.indexOf(":"));
-                    addDatesToList(dates, dateWithoutNumber, patternNumeric);
-                }
-            } else {
-                addDatesToList(dates, date, patternNumeric);
-            }
-        }
-        return dates;
-    }
-
-    private void addDatesToList(List<Integer> dates, String date, Pattern patternNumeric) {
-        Matcher matcherNumeric = patternNumeric.matcher(date);
-        while(matcherNumeric.find()) {
-            dates.add(Integer.parseInt(date.substring(matcherNumeric.start(), matcherNumeric.end())));
-        }
+    private boolean verifyYearIndex(String index) {
+        //TODO доделать проверку на годовой индекс
+        return false;
     }
 
     private SPublication getPublicationById(String publicationId, List<SPublication> publications) {
@@ -244,8 +216,8 @@ public class DocumentParseService {
 
     public void fillAgencyParams(List<SAgency> agencies, Format format) {
         List<Agency> newFormatAgencyList = new ArrayList<>();
-        agencies.forEach(sAgency -> newFormatAgencyList.add(new Agency(sAgency.getId(), null, null, sAgency.getName(),
-                sAgency.getInn(), sAgency.getEmail(), sAgency.getPhone())));
+        agencies.forEach(sAgency -> newFormatAgencyList.add(new Agency(sAgency.getId(), 2, null, sAgency.getName(),
+                sAgency.getInn() != null ? sAgency.getInn() : "0000000000", sAgency.getEmail(), sAgency.getPhone())));
         format.setAgency(newFormatAgencyList);
     }
 
@@ -260,10 +232,10 @@ public class DocumentParseService {
                     sPublication.getAnnotation(),
                     getAgeFromName(sPublication.getName(), format.getAge()),
                     getCountryIdByName(sPublication.getCountry(), format.getCountry()),
-                    null, //В тестовых данных исключительно с параметром "Центральное" в исходных данных
+                    null,
                     getLanguagesByName(sPublication.getLanguage(), format.getLanguage()),
                     getThematicByName(topicInList, sPublication.getId(), thematicEntities),
-                    null,
+                    (byte) 0,
                     null,
                     getInnFromAgency(format.getAgency(), index),
                     getNdsForPublication(priceList, format.getVat(), index),
@@ -281,12 +253,12 @@ public class DocumentParseService {
         String[] formats = sPublication.getOutputDaysOfWeekFormat().split(",");
         List<PublVersion> publVersions = new ArrayList<>();
         Integer timed = getTimedId(sPublication.getPeriod(), time);
+        String[] weights = sPublication.getWeightDaysOfWeek().split(",");
+        String[] pages = sPublication.getOutputDaysOfWeekBand().split(",");
         for (int i = 0; i < formats.length; i++) {
-            String[] weights = sPublication.getWeightDaysOfWeek().split(",");
-            String[] pages = sPublication.getOutputDaysOfWeekBand().split(",");
             if (!formats[i].isEmpty() && !formats[i].equals("0")) {
                 PublVersion publVersion = new PublVersion(
-                        (publication.getId() * 100) + i ,
+                        (publication.getId() * 10) + i,
                         publication.getTitle(),
                         publication.getRegions(),
                         null,
@@ -302,7 +274,32 @@ public class DocumentParseService {
                 publVersions.add(publVersion);
             }
         }
+        if (allZeroFormatParams(formats)) {
+            publVersions.add(new PublVersion(
+                    publication.getId() * 10 + 1,
+                    publication.getTitle(),
+                    publication.getRegions(),
+                    null,
+                    0,
+                    Integer.parseInt(weights[0]),
+                    Integer.parseInt(pages[0]),
+                    550,
+                    0,
+                    0,
+                    timed,
+                    sPublication.getOutputCountForPeriod(),
+                    getIssueForPublVersion(sPublication)
+            ));
+        }
         publication.setPublVersion(publVersions);
+    }
+
+    private boolean allZeroFormatParams(String[] formats) {
+        boolean onlyZero = true;
+        for (String format : formats) {
+            if (!format.isEmpty() && !format.equals("0")) onlyZero = false;
+        }
+        return onlyZero;
     }
 
     private List<Issue> getIssueForPublVersion(SPublication sPublication) {
@@ -505,9 +502,17 @@ public class DocumentParseService {
 
     public void fillTerrainParams(List<SArea> areaList, Format endJson) {
         List<Terrain> terrains = new ArrayList<>();
-        for (SArea area : areaList) {
+       /* for (SArea area : areaList) {
             terrains.add(new Terrain(area.getId(), area.getName(), area.getId(), null));
-        }
+        }*/
+       //TODO Будет доработано при условии что данные будут передаваться
         endJson.setTerrain(terrains);
+    }
+
+    public List<Directory> getDistributionList() {
+        List<Directory> distributionList = new ArrayList<>();
+        distributionList.add(new Directory(1, "Агентская"));
+        distributionList.add(new Directory(2, "Поставки"));
+        return distributionList;
     }
 }

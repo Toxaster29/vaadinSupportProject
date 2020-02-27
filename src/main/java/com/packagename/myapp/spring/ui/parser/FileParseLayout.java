@@ -1,5 +1,6 @@
 package com.packagename.myapp.spring.ui.parser;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.packagename.myapp.spring.entity.parser.newFormat.Accept;
 import com.packagename.myapp.spring.entity.parser.newFormat.ConnectivityThematicEntity;
 import com.packagename.myapp.spring.entity.parser.newFormat.Directory;
@@ -47,6 +48,7 @@ public class FileParseLayout extends VerticalLayout {
 
     private ListBox<String> captionsFromFile = new ListBox<>();
     private ComboBox<Accept> acceptSelect = new ComboBox("Accept");
+    private ComboBox<Directory> distributionSelect = new ComboBox<>("Distribution");
     private Grid<ConnectivityThematicEntity> thematicEntityGrid = new Grid<>();
 
     private final String[] sender = {""};
@@ -125,6 +127,8 @@ public class FileParseLayout extends VerticalLayout {
         halfYearField.setWidthFull();
         acceptSelect.setWidthFull();
         acceptSelect.setItemLabelGenerator(Accept::getName);
+        distributionSelect.setWidthFull();
+        distributionSelect.setItemLabelGenerator(Directory::getName);
         Button getDateButton = new Button("Set date from caption");
         getDateButton.addClickListener(click -> {
             if (!selectedCaption.isEmpty()) {
@@ -140,13 +144,14 @@ public class FileParseLayout extends VerticalLayout {
                 }
             }
         });
+
         Button parseDataButton = new Button("Start parse data");
         parseDataButton.addClickListener(click -> {
-            generateDataNewFormat(halfYearField.getValue(), yearField.getValue(), acceptSelect.getValue());
+            generateDataNewFormat(halfYearField.getValue(), yearField.getValue(), acceptSelect.getValue(), distributionSelect.getValue());
         });
         VerticalLayout uploadLayout = new VerticalLayout(upload, readData);
         uploadLayout.setSizeFull();
-        VerticalLayout captionLayout = new VerticalLayout(captionsFromFile, getDateButton);
+        VerticalLayout captionLayout = new VerticalLayout(captionsFromFile, distributionSelect, getDateButton);
         captionLayout.setSizeFull();
         VerticalLayout campaignLayout = new VerticalLayout(yearField, halfYearField, acceptSelect, parseDataButton);
         campaignLayout.setSizeFull();
@@ -181,16 +186,27 @@ public class FileParseLayout extends VerticalLayout {
         }
     }
 
-    private void generateDataNewFormat(String halfYear, String yearFieldValue, Accept acceptSelectValue) {
+    private void generateDataNewFormat(String halfYear, String yearFieldValue, Accept acceptSelectValue, Directory distribution) {
         endJson.setSender(parseService.parseLine(sender[0]).get(0));
         endJson.setDate(LocalDate.now());
         endJson.setVersion((byte) 1);
+        endJson.setType("subscribe.agency");
         parseService.fillTerrainParams(areaList, endJson);
         //parseService.uploadConnectionThematicToDB(connectivityThematicEntities); //Используется для заполнения связи тематик в бд (весь список) при изменении справочников
         parseService.fillCampaignParams(publications, endJson, connectivityThematicEntities, topicInList, indexList,
-                priceList, halfYear, yearFieldValue, acceptSelectValue, complexList);
+                priceList, halfYear, yearFieldValue, acceptSelectValue, complexList, distribution);
+        whiteJsonToFile(endJson);
         newFormatResultDialog.open();
         newFormatResultDialog.buildDialog(endJson);
+    }
+
+    private void whiteJsonToFile(Format endJson) {
+        ObjectMapper mapper = new ObjectMapper();
+        try {
+            mapper.writeValue(new File("C:\\Users\\assze\\Desktop\\format.json"),endJson);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private void loadDirectoryModeration(List<ConnectivityThematicEntity> connectivityThematicEntities) {
@@ -276,6 +292,7 @@ public class FileParseLayout extends VerticalLayout {
         });
         setCaptionsFromFileOnLayout(captionList);
         acceptSelect.setItems(parseService.getAcceptList());
+        distributionSelect.setItems(parseService.getDistributionList());
         parseService.fillDictionaryData(endJson);
         parseService.fillAgencyParams(agencies, endJson);
         List<ConnectivityThematicEntity> connectivityThematicFromDB = parseService

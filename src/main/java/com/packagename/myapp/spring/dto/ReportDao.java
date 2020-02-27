@@ -4,6 +4,8 @@ import com.packagename.myapp.spring.entity.report.*;
 
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public interface ReportDao {
 
@@ -42,4 +44,10 @@ public interface ReportDao {
     List<ChildrenSubscriptionEntity> getSubscriptionDataForChildrenReport();
 
     void setSubscriptionMonthCount(ChildrenSubscriptionEntity entity);
+
+    List<OnlineReportEntity> getOnlineReportEntities();
+
+    Map<Integer, String> getOnlineOrderHids(Set<Integer> set);
+
+    Map<String, List<CatalogElement>> getPublicationMap(Set<String> publicationSet);
 }

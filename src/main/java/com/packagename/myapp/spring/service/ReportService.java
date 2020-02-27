@@ -10,9 +10,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.PrintWriter;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -163,6 +161,46 @@ public class ReportService {
             for (ChildrenSubscriptionEntity entity : entities) {
                 pw.write(entity.getPublicationCode() + "\t" + entity.getIndex() + "\t"
                         + entity.getTotalPrice() + "\t" + entity.getTotalCount() + "\n");
+            }
+            pw.close();
+        } catch (Exception e) {
+            System.out.println(e);
+        } finally {
+            try {
+                if (pw != null) {
+                    pw.close();
+                }
+            } catch (Exception e) {
+                System.out.println(e);
+            }
+        }
+    }
+
+    public void createOnlineReportWithRegion() {
+        final Integer[] count = {0};
+        List<OnlineReportEntity> onlineReportEntities = reportDao.getOnlineReportEntities();
+        Set<Integer> set = new LinkedHashSet<>(onlineReportEntities.stream().map(OnlineReportEntity::getOnlineOrderId).collect(Collectors.toList()));
+        Map<Integer, String> oderAndHid = reportDao.getOnlineOrderHids(set);
+        Set<String> publicationSet = new LinkedHashSet<>(onlineReportEntities.stream().map(OnlineReportEntity::getPublicationCode).collect(Collectors.toList()));
+        Map<String, List<CatalogElement>> publicationMap = reportDao.getPublicationMap(publicationSet);
+        onlineReportEntities.forEach(entity -> {
+           String name = publicationMap.get(entity.getPublicationCode()).stream().filter(e -> e.getCatalogPeriod()
+                   .equals(entity.getCatalogPeriod())).findFirst().get().getName();
+           entity.setName(name);
+           String hid = oderAndHid.get(entity.getOnlineOrderId());
+           entity.setBuyerHid(hid);
+        });
+        writeOnlineReportToFile(onlineReportEntities);
+    }
+
+    private void writeOnlineReportToFile(List<OnlineReportEntity> onlineReportEntities) {
+        PrintWriter pw = null;
+        try {
+            pw = new PrintWriter(new FileWriter("C:\\Users\\assze\\Desktop\\reportOnline.txt"));
+            for (OnlineReportEntity entity : onlineReportEntities) {
+                pw.write(entity.getIndex() + "\t" + entity.getName() + "\t" + entity.getSum() + "\t" +
+                        entity.getMspCount() + "\t" + entity.getDeliveryRegion() + "\t" + entity.getDeliveryAddress() + "\t"
+                        + entity.getBuyerHid() + "\n");
             }
             pw.close();
         } catch (Exception e) {

@@ -1,12 +1,12 @@
 package com.packagename.myapp.spring.dto;
 
 import com.packagename.myapp.spring.entity.report.*;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 @Repository
 public class ReportDaoImpl implements ReportDao {
@@ -105,6 +105,7 @@ public class ReportDaoImpl implements ReportDao {
     private static String contractUrl = "jdbc:postgresql://localhost:5432/contract";
     private static String urlCatalog = "jdbc:postgresql://localhost:5432/catalogue-service";
     private static String urlSub = "jdbc:postgresql://localhost:5432/sub_subscription_service";
+    private static String subsContextUrl = "jdbc:postgresql://localhost:5432/subscontext";
     private static String user = "postgres";
     private static String passwd = "123";
 
@@ -471,6 +472,75 @@ public class ReportDaoImpl implements ReportDao {
             for (int i = 0; i < alloc.length; i++) count+= Integer.valueOf(alloc[i]);
         }
         entity.setTotalCount(count);
+    }
+
+    @Override
+    public List<OnlineReportEntity> getOnlineReportEntities() {
+        List<OnlineReportEntity> onlineReportEntities = new ArrayList<>();
+        String sql = "select \"index\", publication_code, min_subs_price/min_subs_period, alloc_by_msp,b.region_code, address_string, b.online_order_id, catalogue_id\n" +
+                "FROM subscriptions AS s join bookings AS b ON (s.booking_id = b.booking_id)\n" +
+                "where s.\"type\" = 'PRIMARY' and b.online and s.created_date between '2019-07-01 00:00:01' and '2019-12-31 23:59:59'";
+        try (Connection con = DriverManager.getConnection(urlSub, user, passwd);
+             PreparedStatement pst = con.prepareStatement(sql);
+             ResultSet rs = pst.executeQuery()) {
+            while (rs.next()) {
+                Integer count = getCountByAlloc(rs.getString(4));
+                BigDecimal sum  = rs.getBigDecimal(3).multiply(BigDecimal.valueOf(count));
+                onlineReportEntities.add(new OnlineReportEntity(rs.getString(1), rs.getString(2),
+                        null, sum, count, rs.getString(5), rs.getString(6), null,
+                        rs.getInt(7), rs.getInt(8)));
+            }
+        } catch (SQLException ex) {
+            System.err.println(ex.getMessage());
+        }
+        return onlineReportEntities;
+    }
+
+    @Override
+    public Map<Integer, String> getOnlineOrderHids(Set<Integer> set) {
+        Map<Integer, String> hids = new HashMap<>();
+        String sql = "SELECT order_id, hid FROM public.orders where order_id in (%s)";
+        String filer = StringUtils.join(set,",");
+        try (Connection con = DriverManager.getConnection(subsContextUrl, user, passwd);
+             PreparedStatement pst = con.prepareStatement(String.format(sql, filer));
+             ResultSet rs = pst.executeQuery()) {
+            while (rs.next()) {
+                hids.put(rs.getInt(1), rs.getString(2));
+            }
+        } catch (SQLException ex) {
+            System.err.println(ex.getMessage());
+        }
+        return hids;
+    }
+
+    @Override
+    public Map<String, List<CatalogElement>> getPublicationMap(Set<String> publicationSet) {
+        Map<String, List<CatalogElement>> map = new HashMap<>();
+        String sql = "SELECT publication_code, catalogue_for_period_id, title FROM public.subscription_element where publication_code = '%s'";
+        for (String code : publicationSet) {
+            List<CatalogElement> catalogElements = new ArrayList<>();
+            try (Connection con = DriverManager.getConnection(urlCatalog, user, passwd);
+                 PreparedStatement pst = con.prepareStatement(String.format(sql, code));
+                 ResultSet rs = pst.executeQuery()) {
+                while (rs.next()) {
+                    catalogElements.add(new CatalogElement(rs.getString(1), rs.getInt(2), rs.getString(3)));
+                }
+            } catch (SQLException ex) {
+                System.err.println(ex.getMessage());
+            }
+            map.put(code, catalogElements);
+        }
+        return map;
+    }
+
+    private Integer getCountByAlloc(String string) {
+        Integer count = 0;
+        String out = string.substring(1, string.length() - 1);
+        String[] alloc = out.split(",");
+        for (int i = 0; i < alloc.length; i++) {
+                count += Integer.parseInt(alloc[i]);
+        }
+        return count;
     }
 
     private String getPayer(PlaceType type) {
