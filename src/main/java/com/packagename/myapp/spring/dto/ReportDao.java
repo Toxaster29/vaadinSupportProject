@@ -23,9 +23,9 @@ public interface ReportDao {
 
     List<SubscriptionByPublisher> getSubscriptionList(String publisherId, String publicationCode, Integer periodId);
 
-    List<CatalogPeriod> getPeriodList();
+    List<CatalogPeriod> getPeriodList(Integer year, Integer half);
 
-    List<CatalogPublicationEntity> getCatalogPublicationInfo();
+    List<CatalogPublicationEntity> getCatalogPublicationInfo(String periods);
 
     List<String> getSubscriptionOutputListForPublication(String legalHid, String publicationCode, Integer periodId, String index);
 
@@ -50,4 +50,18 @@ public interface ReportDao {
     Map<Integer, String> getOnlineOrderHids(Set<Integer> set);
 
     Map<String, List<CatalogElement>> getPublicationMap(Set<String> publicationSet);
+
+    List<Subscription> getAllSubscriptionsForPeriod(String periods);
+
+    List<CatalogPrice> getAllCatalogPricesForPublications(List<CatalogPublicationEntity> publicationEntities);
+
+    Double getPriceWithVat(Double mspPriceNoVat, String vat);
+
+    Double getPriceWithoutVat(Double issuePrice, String vat);
+
+    List<DeliveryInfo> getDeliveryInfoForPeriod(String periods);
+
+    String getDelivery(String deliveryInfo);
+
+    String getPayer(PlaceType placeType);
 }

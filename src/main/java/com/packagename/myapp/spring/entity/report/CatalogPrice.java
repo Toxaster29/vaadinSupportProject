@@ -13,5 +13,6 @@ public class CatalogPrice {
     private Double mspPriceNoVat;
     private Double issuePriceNoVat;
     private String vat;
+    private Integer elementId;
 
 }

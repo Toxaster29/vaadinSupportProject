@@ -3,6 +3,7 @@ package com.packagename.myapp.spring.service;
 import com.packagename.myapp.spring.dto.ReportDao;
 import com.packagename.myapp.spring.entity.insert.EmailPhone;
 import com.packagename.myapp.spring.entity.report.*;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -99,8 +100,9 @@ public class ReportService {
     }
 
     public void createOutputReportForAllPublishers() {
-        List<CatalogPeriod> catalogPeriods = reportDao.getPeriodList();
-        List<CatalogPublicationEntity> publicationEntities = reportDao.getCatalogPublicationInfo();
+        List<CatalogPeriod> catalogPeriods = reportDao.getPeriodList(2019, null);
+        String periods = StringUtils.join(catalogPeriods.stream().map(CatalogPeriod::getPeriodId).collect(Collectors.toList()), ",");
+        List<CatalogPublicationEntity> publicationEntities = reportDao.getCatalogPublicationInfo(periods);
         publicationEntities.forEach(entity -> {
             final String[] index = {""};
             Integer half = getHalfByPeriodId(catalogPeriods, entity.getPeriodId());
@@ -179,16 +181,16 @@ public class ReportService {
     public void createOnlineReportWithRegion() {
         final Integer[] count = {0};
         List<OnlineReportEntity> onlineReportEntities = reportDao.getOnlineReportEntities();
-        Set<Integer> set = new LinkedHashSet<>(onlineReportEntities.stream().map(OnlineReportEntity::getOnlineOrderId).collect(Collectors.toList()));
-        Map<Integer, String> oderAndHid = reportDao.getOnlineOrderHids(set);
+        //Set<Integer> set = new LinkedHashSet<>(onlineReportEntities.stream().map(OnlineReportEntity::getOnlineOrderId).collect(Collectors.toList()));
+        //Map<Integer, String> oderAndHid = reportDao.getOnlineOrderHids(set);
         Set<String> publicationSet = new LinkedHashSet<>(onlineReportEntities.stream().map(OnlineReportEntity::getPublicationCode).collect(Collectors.toList()));
         Map<String, List<CatalogElement>> publicationMap = reportDao.getPublicationMap(publicationSet);
         onlineReportEntities.forEach(entity -> {
            String name = publicationMap.get(entity.getPublicationCode()).stream().filter(e -> e.getCatalogPeriod()
                    .equals(entity.getCatalogPeriod())).findFirst().get().getName();
            entity.setName(name);
-           String hid = oderAndHid.get(entity.getOnlineOrderId());
-           entity.setBuyerHid(hid);
+           //String hid = oderAndHid.get(entity.getOnlineOrderId());
+           //entity.setBuyerHid(hid);
         });
         writeOnlineReportToFile(onlineReportEntities);
     }
@@ -196,11 +198,10 @@ public class ReportService {
     private void writeOnlineReportToFile(List<OnlineReportEntity> onlineReportEntities) {
         PrintWriter pw = null;
         try {
-            pw = new PrintWriter(new FileWriter("C:\\Users\\assze\\Desktop\\reportOnline.txt"));
+            pw = new PrintWriter(new FileWriter("C:\\Users\\assze\\Desktop\\reportUfps.txt"));
             for (OnlineReportEntity entity : onlineReportEntities) {
                 pw.write(entity.getIndex() + "\t" + entity.getName() + "\t" + entity.getSum() + "\t" +
-                        entity.getMspCount() + "\t" + entity.getDeliveryRegion() + "\t" + entity.getDeliveryAddress() + "\t"
-                        + entity.getBuyerHid() + "\n");
+                        entity.getMspCount() + "\t" + entity.getDeliveryRegion() + "\n");
             }
             pw.close();
         } catch (Exception e) {
@@ -213,6 +214,77 @@ public class ReportService {
             } catch (Exception e) {
                 System.out.println(e);
             }
+        }
+    }
+
+    public void createReportByPublicationForPeriod() {
+        List<CatalogPeriod> catalogPeriods = reportDao.getPeriodList(2020, 1);
+        String periods = StringUtils.join(catalogPeriods.stream().map(CatalogPeriod::getPeriodId).collect(Collectors.toList()), ",");
+        List<CatalogPublicationEntity> publicationEntities = reportDao.getCatalogPublicationInfo(periods);
+        List<Subscription> subscriptions = reportDao.getAllSubscriptionsForPeriod(periods);
+        List<CatalogPrice> catalogPrices = reportDao.getAllCatalogPricesForPublications(publicationEntities);
+        List<DeliveryInfo> deliveryInfos = reportDao.getDeliveryInfoForPeriod(periods);
+        List<String> dataToFile = new ArrayList<>();
+        publicationEntities.forEach(entity -> {
+            final String[] index = {""};
+            List<CatalogPrice> catalogPricesForPublication = catalogPrices.stream().filter(e -> e.getElementId().equals(entity.getId())).collect(Collectors.toList());
+            catalogPricesForPublication.forEach(price -> {
+                if (!index[0].equals(price.getIndex())) {
+                    if (index[0].equals("")) index[0] = price.getIndex();
+                    List<Subscription> subByParams = subscriptions.stream().filter(s -> s.getPublicationCode().equals(entity.getPublicationCode()) &&
+                            s.getCatalogId().equals(entity.getPeriodId()) && price.getIndex().equals(s.getPublicationIndex())).collect(Collectors.toList());
+                    Integer count = 0;
+                    for (Subscription sub : subByParams) {
+                        for (int i = 0; i < sub.getAllocation().length; i++) {
+                            if (entity.getOutputMonthCount()[i] > 0) {
+                                count += sub.getAllocation()[i] * entity.getOutputMonthCount()[i];
+                            }
+                        }
+                    }
+                    entity.setCirculation(count);
+                    entity.setOutputCount(Arrays.stream(entity.getOutputMonthCount()).mapToInt(Integer::intValue).sum());
+                    String deliveryInfo = deliveryInfos.stream().filter(e -> e.getPeriodId().equals(entity.getPeriodId())
+                    && e.getHid().equals(entity.getLegalHid())).findFirst().get().getType();
+                    dataToFile.add(createFileLine(entity, price, deliveryInfo));
+                }
+            });
+        });
+        writeTextToFile(dataToFile);
+        System.out.println("This is over!");
+    }
+
+    private void writeTextToFile(List<String> dataToFile) {
+        PrintWriter pw = null;
+        try {
+            pw = new PrintWriter(new FileWriter("C:\\Users\\assze\\Desktop\\reportAll2020.txt"));
+            for (String line : dataToFile) {
+                pw.write(line + "\n");
+            }
+            pw.close();
+        } catch (Exception e) {
+            System.out.println(e);
+        } finally {
+            try {
+                if (pw != null) {
+                    pw.close();
+                }
+            } catch (Exception e) {
+                System.out.println(e);
+            }
+        }
+    }
+
+    private String createFileLine(CatalogPublicationEntity entity, CatalogPrice price, String deliveryInfo) {
+        if (price.getMspPriceNoVat() > 0) {
+            return entity.getLegalHid() + "\t" +  price.getIndex() + "\t" +  entity.getId() + "\t" +  entity.getTitle() + "\t" +
+                    price.getMspPriceNoVat() + "\t" +  reportDao.getPriceWithVat(price.getMspPriceNoVat(), price.getVat()) + "\t" +  price.getIssuePriceNoVat() + "\t" +
+                    reportDao.getPriceWithVat(price.getIssuePriceNoVat(), price.getVat()) + "\t" +  entity.getCirculation() + "\t" +  entity.getOutputCount()
+                    + "\t" + reportDao.getDelivery(deliveryInfo) + "\t" + reportDao.getPayer(entity.getPlaceType());
+        } else {
+            return entity.getLegalHid() + "\t" +  price.getIndex() + "\t" +  entity.getId() + "\t" +  entity.getTitle() + "\t" +
+                    reportDao.getPriceWithoutVat(price.getMspPrice(), price.getVat()) + "\t" +  price.getMspPrice() + "\t" +
+                    reportDao.getPriceWithoutVat(price.getIssuePrice(), price.getVat()) + "\t" +  price.getIssuePrice() + "\t" +  entity.getCirculation()
+                    + "\t" +  entity.getOutputCount()  + "\t" + reportDao.getDelivery(deliveryInfo) + "\t" + reportDao.getPayer(entity.getPlaceType());
         }
     }
 }

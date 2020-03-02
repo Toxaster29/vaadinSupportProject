@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository;
 import java.math.BigDecimal;
 import java.sql.*;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Repository
 public class ReportDaoImpl implements ReportDao {
@@ -41,7 +42,7 @@ public class ReportDaoImpl implements ReportDao {
             "where se.legal_hid = \'%s\' and  se.catalogue_for_period_id = %s and se.publication_code = \'%s\'\n" +
             "group by ro.region_id";
 
-    private static String GET_CATALOG_INFORMATION_FOR_ALL_PUBLISHER = "select foo.id,foo.legal_hid, foo.title, foo.publication_code, foo.catalogue_for_period_id,\n" +
+    private static String GET_CATALOG_INFORMATION_FOR_ALL_PUBLISHER = "select foo.id,foo.legal_hid, foo.title, foo.publication_code, foo.catalogue_for_period_id, foo.is_local, foo.place,\n" +
             "sum(case foo.\"month\" when 0 then 1 else 0 end) as Jan,  sum(case foo.\"month\" when 1 then 1 else 0 end) as FEB,\n" +
             "sum(case foo.\"month\" when 2 then 1 else 0 end) as Mar, sum(case foo.\"month\" when 3 then 1 else 0 end) as APR,\n" +
             "sum(case foo.\"month\" when 4 then 1 else 0 end) as MAY, sum(case foo.\"month\" when 5 then 1 else 0 end) as JUN,\n" +
@@ -49,26 +50,28 @@ public class ReportDaoImpl implements ReportDao {
             "sum(case foo.\"month\" when 8 then 1 else 0 end) as SEP, sum(case foo.\"month\" when 9 then 1 else 0 end) as OCT,\n" +
             "sum(case foo.\"month\" when 10 then 1 else 0 end) as NOV, sum(case foo.\"month\" when 11 then 1 else 0 end) as \"dec\"\n" +
             "from (\n" +
-            "SELECT se.id ,se.legal_hid, se.title, se.publication_code, se.catalogue_for_period_id, rd.\"month\"\n" +
+            "SELECT se.id ,se.legal_hid, se.title, se.publication_code, se.catalogue_for_period_id, pi.is_local, pi.place, rd.\"month\"\n" +
             "FROM public.subscription_element se \n" +
             "join regional_option ro on se.id = ro.subscription_element_id\n" +
             "join regional_version rv on rv.id = ro.regional_version_id\n" +
             "join reg_version_details rd on rv.id = rd.reg_version_id\n" +
-            "where  se.catalogue_for_period_id in ('173','220','172','185','186','180','179','219','183','253','255','254','256','184','262','261','265') \n" +
+            "join publication_info pi on pi.id = se.id\n" +
+            "where  se.catalogue_for_period_id in (%s) \n" +
             "and status = 'APPROVED'\n" +
             "and not se.legal_hid = ''\n" +
-            "group by se.id, se.legal_hid, se.title, se.publication_code, se.catalogue_for_period_id, rd.id\n" +
-            ") as foo group by foo.id ,foo.legal_hid, foo.title, foo.publication_code, foo.catalogue_for_period_id";
+            "group by se.id, se.legal_hid, se.title, se.publication_code, se.catalogue_for_period_id,pi.is_local, pi.place, rd.id)as foo\n" +
+            "group by foo.id ,foo.legal_hid, foo.title, foo.publication_code, foo.catalogue_for_period_id, foo.is_local, foo.place";
 
     //('99','101','104','177','137','87','86','171','138','174','178','103','175','176','96','98','94','97','100','102') для 2018
     //'173','220','172','185','186','180','179','219','183','253','255','254','256','184','262','261','265' для 2019
+    //263, 267, 269, 268, 272, 266, 264 для 2020-1
 
     private static String GET_PUBLOCATIONS_FOR_PUBLISHER = "select catalogue_for_period_id, publication_code, title from " +
             "subscription_element as se where legal_hid = '%s'\n" +
             "group by catalogue_for_period_id, publication_code, title";
 
-    private static String GET_CATALOG_PERIOD_LIST = "SELECT year, \\\"half\\\", id FROM public.catalog_period\" +\n" +
-            "            \" where year > 2016 and year < 2020 order by year, \\\"half\\\"";
+    private static String GET_CATALOG_PERIOD_LIST = "SELECT year, \"half\", id FROM public.catalog_period\" +\n" +
+            "            \" where year > 2016 and year < 2020 order by year, \"half\"";
 
     private static String GET_CATALOG_PERIOD_LIST_FOR_YEAR = "SELECT year, \"half\", id FROM public.catalog_period" +
             " where year = %s order by year, \"half\"";
@@ -81,12 +84,13 @@ public class ReportDaoImpl implements ReportDao {
     private static String GET_SUBSCRIPTION_OUTPUT = "select alloc_by_msp FROM public.subscriptions_for_reports where publisher_id " +
             "= '%s' and publication_code = '%s' and catalogue_id = %s and \"index\" = '%s'";
 
-    private static String GET_CATALOG_PRICE = "SELECT si.code, min_price, publisher_selling_price, catalogue_msp_price_no_vat, cp.selling_issue_price_no_vat, ro.vat FROM public.price_group pg\n" +
+    private static String GET_CATALOG_PRICE = "SELECT si.code, min_price, publisher_selling_price, catalogue_msp_price_no_vat, cp.selling_issue_price_no_vat, ro.vat, pg.subs_element_id " +
+            "FROM public.price_group pg\n" +
             "join catalogue_prices cp on pg.id = cp.price_group_id\n" +
             "join regional_option ro on pg.id = ro.price_group_id\n" +
             "join subscription_index si on cp.index_id = si.id\n" +
             "where pg.subs_element_id = %s\n" +
-            "group by si.code, min_price, publisher_selling_price, catalogue_msp_price_no_vat, cp.selling_issue_price_no_vat, ro.vat";
+            "group by pg.subs_element_id, si.code, min_price, publisher_selling_price, catalogue_msp_price_no_vat, cp.selling_issue_price_no_vat, ro.vat";
 
     private static String GET_ALL_REPORT_ROWS = "select distinct legal_hid from report";
     private static String GET_ALL_REPORT_ROWS_IDS = "select distinct id from report";
@@ -244,10 +248,11 @@ public class ReportDaoImpl implements ReportDao {
     }
 
     @Override
-    public List<CatalogPeriod> getPeriodList() {
+    public List<CatalogPeriod> getPeriodList(Integer year, Integer half) {
         List<CatalogPeriod> catalogPeriods = new ArrayList<>();
+        String halfAndYear = half == null ? String.valueOf(year) : year + "and \"half\" = " + half;
         try (Connection con = DriverManager.getConnection(urlCatalog, user, passwd);
-             PreparedStatement pst = con.prepareStatement(String.format(GET_CATALOG_PERIOD_LIST_FOR_YEAR, 2019));
+             PreparedStatement pst = con.prepareStatement(String.format(GET_CATALOG_PERIOD_LIST_FOR_YEAR, halfAndYear));
              ResultSet rs = pst.executeQuery()) {
             while (rs.next()) {
                 catalogPeriods.add(new CatalogPeriod(rs.getInt(1),rs.getInt(2),rs.getInt(3)));
@@ -259,17 +264,18 @@ public class ReportDaoImpl implements ReportDao {
     }
 
     @Override
-    public List<CatalogPublicationEntity> getCatalogPublicationInfo() {
+    public List<CatalogPublicationEntity> getCatalogPublicationInfo(String periods) {
         List<CatalogPublicationEntity> catalogPublicationEntities = new ArrayList<>();
         try (Connection con = DriverManager.getConnection(urlCatalog, user, passwd);
-             PreparedStatement pst = con.prepareStatement(GET_CATALOG_INFORMATION_FOR_ALL_PUBLISHER);
+             PreparedStatement pst = con.prepareStatement(String.format(GET_CATALOG_INFORMATION_FOR_ALL_PUBLISHER, periods));
              ResultSet rs = pst.executeQuery()) {
             while (rs.next()) {
-                Integer[] output = {rs.getInt(6), rs.getInt(7), rs.getInt(8), rs.getInt(9),
-                        rs.getInt(10), rs.getInt(11), rs.getInt(12), rs.getInt(13),
-                        rs.getInt(14), rs.getInt(15), rs.getInt(16), rs.getInt(17)};
+                Integer[] output = {rs.getInt(8), rs.getInt(9), rs.getInt(10), rs.getInt(11),
+                        rs.getInt(12), rs.getInt(13), rs.getInt(14), rs.getInt(15),
+                        rs.getInt(16), rs.getInt(17), rs.getInt(18), rs.getInt(19)};
                 catalogPublicationEntities.add(new CatalogPublicationEntity(rs.getInt(1), rs.getString(2),
-                        rs.getString(3), rs.getString(4), rs.getInt(5),output, null, null));
+                        rs.getString(3), rs.getString(4), rs.getInt(5),output, null,
+                        null, new PlaceType(rs.getString(7), rs.getBoolean(6))));
             }
         } catch (SQLException ex) {
             System.err.println(ex.getMessage());
@@ -302,7 +308,7 @@ public class ReportDaoImpl implements ReportDao {
             while (rs.next()) {
                 prices.add(new CatalogPrice(rs.getString(1), rs.getDouble(2),
                         rs.getDouble(3), rs.getDouble(4), rs.getDouble(5),
-                        rs.getString(6)));
+                        rs.getString(6), rs.getInt(7)));
             }
         } catch (SQLException ex) {
             System.err.println(ex.getMessage());
@@ -477,15 +483,15 @@ public class ReportDaoImpl implements ReportDao {
     @Override
     public List<OnlineReportEntity> getOnlineReportEntities() {
         List<OnlineReportEntity> onlineReportEntities = new ArrayList<>();
-        String sql = "select \"index\", publication_code, min_subs_price/min_subs_period, alloc_by_msp,b.region_code, address_string, b.online_order_id, catalogue_id\n" +
+        String sql = "select \"index\", publication_code, price_for_period, alloc_by_msp,b.region_code, address_string, b.online_order_id, catalogue_id\n" +
                 "FROM subscriptions AS s join bookings AS b ON (s.booking_id = b.booking_id)\n" +
-                "where s.\"type\" = 'PRIMARY' and b.online and s.created_date between '2019-07-01 00:00:01' and '2019-12-31 23:59:59'";
+                "where s.\"type\" = 'PRIMARY' and b.source_type = 0 and s.created_date between '2019-01-01 00:00:01' and '2019-06-30 23:59:59'";
         try (Connection con = DriverManager.getConnection(urlSub, user, passwd);
              PreparedStatement pst = con.prepareStatement(sql);
              ResultSet rs = pst.executeQuery()) {
             while (rs.next()) {
                 Integer count = getCountByAlloc(rs.getString(4));
-                BigDecimal sum  = rs.getBigDecimal(3).multiply(BigDecimal.valueOf(count));
+                BigDecimal sum  = rs.getBigDecimal(3);
                 onlineReportEntities.add(new OnlineReportEntity(rs.getString(1), rs.getString(2),
                         null, sum, count, rs.getString(5), rs.getString(6), null,
                         rs.getInt(7), rs.getInt(8)));
@@ -533,6 +539,59 @@ public class ReportDaoImpl implements ReportDao {
         return map;
     }
 
+    @Override
+    public List<Subscription> getAllSubscriptionsForPeriod(String periods) {
+        List<Subscription> subscriptions = new ArrayList<>();
+        String sql = "SELECT s.subscription_id, b.region_code, s.publisher_id, s.publication_code, s.\"index\", s.catalogue_id, s.min_subs_period, s.alloc_by_msp \n" +
+                "FROM public.subscriptions s join bookings b on b.booking_id = s.booking_id\n" +
+                "where b.state in (2,4) and s.catalogue_id in (%s)";
+        try (Connection con = DriverManager.getConnection(urlSub, user, passwd);
+             PreparedStatement pst = con.prepareStatement(String.format(sql, periods));
+             ResultSet rs = pst.executeQuery()) {
+            while (rs.next()) {
+                subscriptions.add(new Subscription(rs.getInt(1), rs.getInt(2), rs.getString(3),
+                        rs.getString(4), rs.getString(5), rs.getInt(6), rs.getInt(7),
+                        getAllocationsFromString(rs.getString(8)), null));
+            }
+        } catch (SQLException ex) {
+            System.err.println(ex.getMessage());
+        }
+        return subscriptions;
+    }
+
+    @Override
+    public List<CatalogPrice> getAllCatalogPricesForPublications(List<CatalogPublicationEntity> publicationEntities) {
+        List<CatalogPrice> prices = new ArrayList<>();
+        String sql = "SELECT si.code, min_price, publisher_selling_price, catalogue_msp_price_no_vat, cp.selling_issue_price_no_vat, ro.vat, pg.subs_element_id " +
+                "FROM public.price_group pg\n" +
+                "join catalogue_prices cp on pg.id = cp.price_group_id\n" +
+                "join regional_option ro on pg.id = ro.price_group_id\n" +
+                "join subscription_index si on cp.index_id = si.id\n" +
+                "where pg.subs_element_id in (%s)\n" +
+                "group by pg.subs_element_id, si.code, min_price, publisher_selling_price, catalogue_msp_price_no_vat, cp.selling_issue_price_no_vat, ro.vat";
+        List<Integer> integerIds = publicationEntities.stream().map(CatalogPublicationEntity::getId).collect(Collectors.toList());
+        String ids = StringUtils.join(integerIds, ",");
+        try (Connection con = DriverManager.getConnection(urlCatalog, user, passwd);
+             PreparedStatement pst = con.prepareStatement(String.format(sql, ids));
+             ResultSet rs = pst.executeQuery()) {
+            while (rs.next()) {
+                prices.add(new CatalogPrice(rs.getString(1), rs.getDouble(2),
+                        rs.getDouble(3), rs.getDouble(4), rs.getDouble(5),
+                        rs.getString(6), rs.getInt(7)));
+            }
+        } catch (SQLException ex) {
+            System.err.println(ex.getMessage());
+        }
+        return prices;
+
+    }
+
+    private int[] getAllocationsFromString(String string) {
+        String out = string.substring(1, string.length() - 1);
+        String[] alloc = out.split(",");
+        return  Arrays.asList(alloc).stream().mapToInt(Integer::parseInt).toArray();
+    }
+
     private Integer getCountByAlloc(String string) {
         Integer count = 0;
         String out = string.substring(1, string.length() - 1);
@@ -543,7 +602,7 @@ public class ReportDaoImpl implements ReportDao {
         return count;
     }
 
-    private String getPayer(PlaceType type) {
+    public String getPayer(PlaceType type) {
         String value = "";
         switch (type.getType()) {
             case "FEDERAL":
@@ -558,7 +617,7 @@ public class ReportDaoImpl implements ReportDao {
         return value;
     }
 
-    private String getDelivery(String deliveryType) {
+    public String getDelivery(String deliveryType) {
         String value = "";
         switch (deliveryType) {
             case "CENTRALIZED":
@@ -571,7 +630,7 @@ public class ReportDaoImpl implements ReportDao {
         return value;
     }
 
-    private Double getPriceWithoutVat(Double issuePrice, String vat) {
+    public Double getPriceWithoutVat(Double issuePrice, String vat) {
         Double totalPrice = new Double(issuePrice);
         switch (vat) {
             case "ZERO":
@@ -589,7 +648,23 @@ public class ReportDaoImpl implements ReportDao {
         return totalPrice;
     }
 
-    private Double getPriceWithVat(Double mspPrice, String vat) {
+    @Override
+    public List<DeliveryInfo> getDeliveryInfoForPeriod(String periods) {
+        List<DeliveryInfo> deliveryInfos = new ArrayList<>();
+        String sql = "SELECT * FROM public.delivery_info where cfp_id in (%s)";
+        try (Connection con = DriverManager.getConnection(urlCatalog, user, passwd);
+             PreparedStatement pst = con.prepareStatement(String.format(sql, periods));
+             ResultSet rs = pst.executeQuery()) {
+            while (rs.next()) {
+                deliveryInfos.add(new DeliveryInfo(rs.getString(1), rs.getInt(2), rs.getString(3)));
+            }
+        } catch (SQLException ex) {
+            System.err.println(ex.getMessage());
+        }
+        return deliveryInfos;
+    }
+
+    public Double getPriceWithVat(Double mspPrice, String vat) {
         Double totalPrice = new Double(mspPrice);
         switch (vat) {
             case "ZERO":

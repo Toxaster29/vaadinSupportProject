@@ -17,4 +17,5 @@ public class CatalogPublicationEntity {
     private Integer[] outputMonthCount;
     private Integer outputCount;
     private Integer circulation;
+    private PlaceType placeType;
 }
