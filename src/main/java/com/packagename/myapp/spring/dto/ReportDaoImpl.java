@@ -308,7 +308,7 @@ public class ReportDaoImpl implements ReportDao {
             while (rs.next()) {
                 prices.add(new CatalogPrice(rs.getString(1), rs.getDouble(2),
                         rs.getDouble(3), rs.getDouble(4), rs.getDouble(5),
-                        rs.getString(6), rs.getInt(7)));
+                        rs.getString(6), rs.getInt(7), null));
             }
         } catch (SQLException ex) {
             System.err.println(ex.getMessage());
@@ -562,7 +562,8 @@ public class ReportDaoImpl implements ReportDao {
     @Override
     public List<CatalogPrice> getAllCatalogPricesForPublications(List<CatalogPublicationEntity> publicationEntities) {
         List<CatalogPrice> prices = new ArrayList<>();
-        String sql = "SELECT si.code, min_price, publisher_selling_price, catalogue_msp_price_no_vat, cp.selling_issue_price_no_vat, ro.vat, pg.subs_element_id " +
+        String sql = "SELECT si.code, min_price, publisher_selling_price, catalogue_msp_price_no_vat, cp.selling_issue_price_no_vat," +
+                " ro.vat, pg.subs_element_id, ARRAY_AGG (ro.region_id) " +
                 "FROM public.price_group pg\n" +
                 "join catalogue_prices cp on pg.id = cp.price_group_id\n" +
                 "join regional_option ro on pg.id = ro.price_group_id\n" +
@@ -577,7 +578,7 @@ public class ReportDaoImpl implements ReportDao {
             while (rs.next()) {
                 prices.add(new CatalogPrice(rs.getString(1), rs.getDouble(2),
                         rs.getDouble(3), rs.getDouble(4), rs.getDouble(5),
-                        rs.getString(6), rs.getInt(7)));
+                        rs.getString(6), rs.getInt(7), getAllocationsFromString(rs.getString(8))));
             }
         } catch (SQLException ex) {
             System.err.println(ex.getMessage());

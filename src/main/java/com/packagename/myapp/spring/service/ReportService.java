@@ -13,6 +13,7 @@ import java.io.PrintWriter;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.DoubleStream;
 
 @Service
 public class ReportService {
@@ -226,31 +227,35 @@ public class ReportService {
         List<DeliveryInfo> deliveryInfos = reportDao.getDeliveryInfoForPeriod(periods);
         List<String> dataToFile = new ArrayList<>();
         publicationEntities.forEach(entity -> {
-            final String[] index = {""};
             List<CatalogPrice> catalogPricesForPublication = catalogPrices.stream().filter(e -> e.getElementId().equals(entity.getId())).collect(Collectors.toList());
             catalogPricesForPublication.forEach(price -> {
-                if (!index[0].equals(price.getIndex())) {
-                    if (index[0].equals("")) index[0] = price.getIndex();
-                    List<Subscription> subByParams = subscriptions.stream().filter(s -> s.getPublicationCode().equals(entity.getPublicationCode()) &&
-                            s.getCatalogId().equals(entity.getPeriodId()) && price.getIndex().equals(s.getPublicationIndex())).collect(Collectors.toList());
-                    Integer count = 0;
-                    for (Subscription sub : subByParams) {
-                        for (int i = 0; i < sub.getAllocation().length; i++) {
-                            if (entity.getOutputMonthCount()[i] > 0) {
-                                count += sub.getAllocation()[i] * entity.getOutputMonthCount()[i];
-                            }
+                List<Subscription> subByParams = subscriptions.stream().filter(s -> s.getPublicationCode().equals(entity.getPublicationCode()) &&
+                        s.getCatalogId().equals(entity.getPeriodId()) && price.getIndex().equals(s.getPublicationIndex())
+                        && priceForRegion(s.getRegionCode(), price.getRegionId())).collect(Collectors.toList());
+                Integer count = 0;
+                for (Subscription sub : subByParams) {
+                    for (int i = 0; i < sub.getAllocation().length; i++) {
+                        if (entity.getOutputMonthCount()[i] > 0) {
+                            count += sub.getAllocation()[i] * entity.getOutputMonthCount()[i];
                         }
                     }
-                    entity.setCirculation(count);
-                    entity.setOutputCount(Arrays.stream(entity.getOutputMonthCount()).mapToInt(Integer::intValue).sum());
-                    String deliveryInfo = deliveryInfos.stream().filter(e -> e.getPeriodId().equals(entity.getPeriodId())
-                    && e.getHid().equals(entity.getLegalHid())).findFirst().get().getType();
-                    dataToFile.add(createFileLine(entity, price, deliveryInfo));
                 }
+                entity.setCirculation(count);
+                entity.setOutputCount(Arrays.stream(entity.getOutputMonthCount()).mapToInt(Integer::intValue).sum());
+                String deliveryInfo = deliveryInfos.stream().filter(e -> e.getPeriodId().equals(entity.getPeriodId())
+                && e.getHid().equals(entity.getLegalHid())).findFirst().get().getType();
+                dataToFile.add(createFileLine(entity, price, deliveryInfo));
             });
         });
         writeTextToFile(dataToFile);
         System.out.println("This is over!");
+    }
+
+    private boolean priceForRegion(Integer regionCode, int[] regionId) {
+        for(int code : regionId) {
+            if (regionCode == code) return true;
+        }
+        return false;
     }
 
     private void writeTextToFile(List<String> dataToFile) {

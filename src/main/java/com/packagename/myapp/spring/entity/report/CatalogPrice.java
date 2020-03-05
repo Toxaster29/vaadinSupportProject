@@ -14,5 +14,6 @@ public class CatalogPrice {
     private Double issuePriceNoVat;
     private String vat;
     private Integer elementId;
+    private int[] regionId;
 
 }
