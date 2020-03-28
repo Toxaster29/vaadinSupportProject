@@ -1,19 +1,19 @@
 package com.packagename.myapp.spring.service;
 
 import com.packagename.myapp.spring.dto.ReportDao;
-import com.packagename.myapp.spring.entity.insert.EmailPhone;
 import com.packagename.myapp.spring.entity.report.*;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.io.File;
 import java.io.FileWriter;
 import java.io.PrintWriter;
 import java.sql.SQLException;
 import java.util.*;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
-import java.util.stream.DoubleStream;
+
+import static java.util.stream.Collectors.groupingBy;
 
 @Service
 public class ReportService {
@@ -291,5 +291,93 @@ public class ReportService {
                     reportDao.getPriceWithoutVat(price.getIssuePrice(), price.getVat()) + "\t" +  price.getIssuePrice() + "\t" +  entity.getCirculation()
                     + "\t" +  entity.getOutputCount()  + "\t" + reportDao.getDelivery(deliveryInfo) + "\t" + reportDao.getPayer(entity.getPlaceType());
         }
+    }
+
+    public void createReportForSocial() {
+
+        List<CatalogPeriod> catalogPeriods = reportDao.getPeriodList(2019, 2);
+        String periods = StringUtils.join(catalogPeriods.stream().map(CatalogPeriod::getPeriodId).collect(Collectors.toList()), ",");
+        List<CatalogPublicationEntity> publicationEntities = reportDao.getCatalogPublicationInfo(periods);
+        List<Subscription> subscriptions = reportDao.getAllSubscriptionsForPeriod(periods);
+        Map<Integer, Map<String, Map<Integer, List<Subscription>>>> subscriptionMap = subscriptions.stream()
+                .collect(groupingBy(Subscription::getCatalogId, groupByIndexAndRegion()));
+        List<CatalogPriceWithService> catalogPrices = reportDao.getAllCatalogPricesForPublicationsWithServicePrice(publicationEntities);
+        Map<Integer, List<CatalogPriceWithService>> catalogPriceMap = catalogPrices.stream().collect(groupingBy(CatalogPriceWithService::getElementId));
+        List<String> dataToFile = new ArrayList<>();
+        final int[] entityCount = {0};
+        publicationEntities.forEach(entity -> {
+            List<CatalogPriceWithService> catalogPricesForPublication = catalogPriceMap.get(entity.getId());
+            final CatalogPriceWithService[] oldPrice = {null};
+            if (catalogPricesForPublication != null) {
+                Map<String, Map<Integer, List<Subscription>>> subscriptionPublicationMap = subscriptionMap.get(entity.getPeriodId());
+                catalogPricesForPublication.forEach(price -> {
+                    boolean notAgain = true;
+                    if (oldPrice[0] == null) {
+                        oldPrice[0] = price;
+                    } else {
+                        if (oldPrice[0].getRegionId().equals(price.getRegionId()) && oldPrice[0].getElementId().equals(price.getElementId()))
+                            notAgain = false;
+                    }
+                    if (notAgain) {
+                        Map<Integer, List<Subscription>> subByParamsMap = subscriptionPublicationMap.get(price.getIndex());
+                        if (subByParamsMap != null) {
+                            List<Subscription> subByParam = subByParamsMap.get(Integer.valueOf(price.getRegionId()));
+                            if(subByParam != null) {
+                                entity.setCirculation(searchCount(entity.getOutputMonthCount(), subByParam));
+                                if (entity.getCirculation() > 0) dataToFile.add(AddLineForSocialReport(entity, price));
+                            }
+                        }
+                    }
+                });
+                entityCount[0]++;
+                if (entityCount[0] % 100 == 0) System.out.println("Выполнено " + entityCount[0] + " из " + publicationEntities.size());
+            }
+        });
+        writeTextToFile(dataToFile);
+        System.out.println("Ok");
+    }
+
+    private Integer searchCount(Integer[] outputMonthCount, List<Subscription> subByParam) {
+        Integer count = 0;
+        for (Subscription sub : subByParam) {
+            for (int i = 0; i < sub.getAllocation().length; i++) {
+                if (outputMonthCount[i] > 0) {
+                    count += sub.getAllocation()[i] * outputMonthCount[i];
+                }
+            }
+        }
+        return count;
+    }
+
+    private Collector<Subscription, ?, Map<String, Map<Integer, List<Subscription>>>> groupByIndexAndRegion() {
+        return groupingBy(Subscription::getPublicationIndex, groupingBy(Subscription::getRegionCode));
+    }
+
+    private String AddLineForSocialReport(CatalogPublicationEntity entity, CatalogPriceWithService price) {
+        if (price.getMspPriceNoVat() > 0) {
+            Double subPrice = generateSubscriptionPrice(price.getMspPriceNoVat(), price.getServicePriceNotVat(), false);
+            Double discount = entity.getIsSocial() ? (price.getServicePriceNotVat() / 3) * 1.2 : 0;
+            Double servicePriceWithoutDiscount = (price.getServicePrice() * 1.2) + discount;
+            Double subPriceWithoutDiscount = servicePriceWithoutDiscount + reportDao.getPriceWithVat(price.getMspPriceNoVat(), price.getVat());
+            Integer discountPercent = discount == 0 ? 0 : 25;
+            return entity.getId() + "\t" + entity.getLegalHid() + "\t" + entity.getTitle() + "\t" + entity.getCirculation() + "\t"
+                    + reportDao.getPriceWithVat(price.getIssuePriceNoVat(), price.getVat()) + "\t" + reportDao.getPriceWithVat(price.getMspPriceNoVat(), price.getVat())
+                    + "\t" + subPriceWithoutDiscount + "\t" + subPrice  + "\t" + discount + "\t" + discountPercent;
+        } else {
+            Double subPrice = generateSubscriptionPrice(price.getMspPrice(),price.getServicePrice(), true);
+            Double discount = entity.getIsSocial() ? price.getServicePrice() / 3 : 0;
+            Double servicePriceWithoutDiscount = price.getServicePrice() + discount;
+            Integer discountPercent = discount == 0 ? 0 : 25;
+            Double subPriceWithoutDiscount = servicePriceWithoutDiscount + price.getMspPrice();
+             return entity.getId() + "\t" + entity.getLegalHid() + "\t" + entity.getTitle() + "\t" + entity.getCirculation() + "\t"
+                     + reportDao.getPriceWithVat(price.getIssuePrice(), price.getVat()) + "\t" + price.getMspPrice() + "\t"
+                     + subPriceWithoutDiscount  + "\t" + subPrice +  "\t" + discount + "\t" + discountPercent;
+        }
+    }
+
+    private Double generateSubscriptionPrice(Double mspPriceNoVat, Double servicePriceNotVat, boolean withVat) {
+        if (withVat) {
+            return mspPriceNoVat + servicePriceNotVat;
+        } else return (mspPriceNoVat + servicePriceNotVat) * 1.2;
     }
 }

@@ -64,4 +64,6 @@ public interface ReportDao {
     String getDelivery(String deliveryInfo);
 
     String getPayer(PlaceType placeType);
+
+    List<CatalogPriceWithService> getAllCatalogPricesForPublicationsWithServicePrice(List<CatalogPublicationEntity> publicationEntities);
 }

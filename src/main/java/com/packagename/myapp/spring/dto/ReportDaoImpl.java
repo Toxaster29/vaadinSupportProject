@@ -42,15 +42,15 @@ public class ReportDaoImpl implements ReportDao {
             "where se.legal_hid = \'%s\' and  se.catalogue_for_period_id = %s and se.publication_code = \'%s\'\n" +
             "group by ro.region_id";
 
-    private static String GET_CATALOG_INFORMATION_FOR_ALL_PUBLISHER = "select foo.id,foo.legal_hid, foo.title, foo.publication_code, foo.catalogue_for_period_id, foo.is_local, foo.place,\n" +
+    private static String GET_CATALOG_INFORMATION_FOR_ALL_PUBLISHER = "select foo.id,foo.legal_hid, foo.title, foo.publication_code, foo.catalogue_for_period_id, foo.is_local, foo.place, \n" +
             "sum(case foo.\"month\" when 0 then 1 else 0 end) as Jan,  sum(case foo.\"month\" when 1 then 1 else 0 end) as FEB,\n" +
             "sum(case foo.\"month\" when 2 then 1 else 0 end) as Mar, sum(case foo.\"month\" when 3 then 1 else 0 end) as APR,\n" +
             "sum(case foo.\"month\" when 4 then 1 else 0 end) as MAY, sum(case foo.\"month\" when 5 then 1 else 0 end) as JUN,\n" +
             "sum(case foo.\"month\" when 6 then 1 else 0 end) as JUL, sum(case foo.\"month\" when 7 then 1 else 0 end) as AUG,\n" +
             "sum(case foo.\"month\" when 8 then 1 else 0 end) as SEP, sum(case foo.\"month\" when 9 then 1 else 0 end) as OCT,\n" +
-            "sum(case foo.\"month\" when 10 then 1 else 0 end) as NOV, sum(case foo.\"month\" when 11 then 1 else 0 end) as \"dec\"\n" +
+            "sum(case foo.\"month\" when 10 then 1 else 0 end) as NOV, sum(case foo.\"month\" when 11 then 1 else 0 end) as \"dec\", foo.social, foo.discount\n" +
             "from (\n" +
-            "SELECT se.id ,se.legal_hid, se.title, se.publication_code, se.catalogue_for_period_id, pi.is_local, pi.place, rd.\"month\"\n" +
+            "SELECT se.id ,se.legal_hid, se.title, se.publication_code, se.catalogue_for_period_id, pi.is_local, pi.place, rd.\"month\", se.social, pi.discount \n" +
             "FROM public.subscription_element se \n" +
             "join regional_option ro on se.id = ro.subscription_element_id\n" +
             "join regional_version rv on rv.id = ro.regional_version_id\n" +
@@ -59,12 +59,8 @@ public class ReportDaoImpl implements ReportDao {
             "where  se.catalogue_for_period_id in (%s) \n" +
             "and status = 'APPROVED'\n" +
             "and not se.legal_hid = ''\n" +
-            "group by se.id, se.legal_hid, se.title, se.publication_code, se.catalogue_for_period_id,pi.is_local, pi.place, rd.id)as foo\n" +
-            "group by foo.id ,foo.legal_hid, foo.title, foo.publication_code, foo.catalogue_for_period_id, foo.is_local, foo.place";
-
-    //('99','101','104','177','137','87','86','171','138','174','178','103','175','176','96','98','94','97','100','102') для 2018
-    //'173','220','172','185','186','180','179','219','183','253','255','254','256','184','262','261','265' для 2019
-    //263, 267, 269, 268, 272, 266, 264 для 2020-1
+            "group by se.id, se.legal_hid, se.title, se.publication_code, se.catalogue_for_period_id,pi.is_local, pi.place, rd.id, se.social, pi.discount)as foo\n" +
+            "group by foo.id ,foo.legal_hid, foo.title, foo.publication_code, foo.catalogue_for_period_id, foo.is_local, foo.place, foo.social, foo.discount";
 
     private static String GET_PUBLOCATIONS_FOR_PUBLISHER = "select catalogue_for_period_id, publication_code, title from " +
             "subscription_element as se where legal_hid = '%s'\n" +
@@ -275,7 +271,8 @@ public class ReportDaoImpl implements ReportDao {
                         rs.getInt(16), rs.getInt(17), rs.getInt(18), rs.getInt(19)};
                 catalogPublicationEntities.add(new CatalogPublicationEntity(rs.getInt(1), rs.getString(2),
                         rs.getString(3), rs.getString(4), rs.getInt(5),output, null,
-                        null, new PlaceType(rs.getString(7), rs.getBoolean(6))));
+                        null, new PlaceType(rs.getString(7), rs.getBoolean(6)), rs.getBoolean(20),
+                        rs.getDouble(21)));
             }
         } catch (SQLException ex) {
             System.err.println(ex.getMessage());
@@ -616,6 +613,37 @@ public class ReportDaoImpl implements ReportDao {
                 break;
         }
         return value;
+    }
+
+    @Override
+    public List<CatalogPriceWithService> getAllCatalogPricesForPublicationsWithServicePrice(List<CatalogPublicationEntity> publicationEntities) {
+
+        String sql = "SELECT se.id,si.code,ip.price_min_catalogue,ip.publisher_selling_price,ip.catalogue_msp_price_no_vat,ip.selling_issue_price_no_vat,\n" +
+                "zp.service_home,zp.service_msp_price_no_vat_home,ro.vat,ip.region_id \n" +
+                "FROM subscription_element se\n" +
+                "join regional_option ro on se.id = ro.subscription_element_id \n" +
+                "join subscription_index si on se.id = si.subs_element_id \n" +
+                "join index_price ip on ip.subs_index_id = si.id and ro.region_id = ip.region_id \n" +
+                "join zone_price zp on zp.index_price_id = ip.id \n" +
+                "where se.id in (%s)\n" +
+                "group by se.id , si.code, ro.vat,zp.service_home, zp.service_msp_price_no_vat_home,ip.price_min_catalogue,ip.publisher_selling_price,\n" +
+                "ip.catalogue_msp_price_no_vat,ip.selling_issue_price_no_vat,ip.region_id\n" +
+                "order by si.code,ip.region_id";
+        List<CatalogPriceWithService> priceWithServices = new ArrayList<>();
+        List<Integer> integerIds = publicationEntities.stream().map(CatalogPublicationEntity::getId).collect(Collectors.toList());
+        String ids = StringUtils.join(integerIds, ",");
+        try (Connection con = DriverManager.getConnection(urlCatalog, user, passwd);
+             PreparedStatement pst = con.prepareStatement(String.format(sql, ids));
+             ResultSet rs = pst.executeQuery()) {
+            while (rs.next()) {
+                priceWithServices.add(new CatalogPriceWithService(rs.getInt(1), rs.getString(2), rs.getDouble(3),
+                        rs.getDouble(4), rs.getDouble(5), rs.getDouble(6), rs.getDouble(7),
+                        rs.getDouble(8), rs.getString(9), rs.getString(10)));
+            }
+        } catch (SQLException ex) {
+            System.err.println(ex.getMessage());
+        }
+        return priceWithServices;
     }
 
     public String getDelivery(String deliveryType) {

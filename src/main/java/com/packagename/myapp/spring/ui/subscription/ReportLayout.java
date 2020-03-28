@@ -53,8 +53,12 @@ public class ReportLayout extends VerticalLayout {
         reportByPublicationForPeriod.addClickListener(click -> {
            reportService.createReportByPublicationForPeriod();
         });
+        Button reportForSocialPublication = new Button("Report for social");
+        reportForSocialPublication.addClickListener(click -> {
+            reportService.createReportForSocial();
+        });
         add(generateReportButton, publisherIdField, generatePublisherReportButton, addDataToReport, childrenDataReport,
-                onlineReportWithRegion, reportByPublicationForPeriod);
+                onlineReportWithRegion, reportByPublicationForPeriod, reportForSocialPublication);
     }
 
     private void initHeader() {

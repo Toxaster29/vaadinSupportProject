@@ -18,4 +18,6 @@ public class CatalogPublicationEntity {
     private Integer outputCount;
     private Integer circulation;
     private PlaceType placeType;
+    private Boolean isSocial;
+    private Double discount;
 }
