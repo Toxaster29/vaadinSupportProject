@@ -539,7 +539,8 @@ public class ReportDaoImpl implements ReportDao {
     @Override
     public List<Subscription> getAllSubscriptionsForPeriod(String periods) {
         List<Subscription> subscriptions = new ArrayList<>();
-        String sql = "SELECT s.subscription_id, b.region_code, s.publisher_id, s.publication_code, s.\"index\", s.catalogue_id, s.min_subs_period, s.alloc_by_msp \n" +
+        String sql = "SELECT s.subscription_id, b.region_code, s.publisher_id, s.publication_code, s.\"index\", s.catalogue_id, s.min_subs_period, s.alloc_by_msp,\n" +
+                "alloc_jan,alloc_feb,alloc_mar,alloc_apr,alloc_may,alloc_jun,alloc_jul,alloc_aug,alloc_sep,alloc_oct,alloc_nov,alloc_dec \n" +
                 "FROM public.subscriptions s join bookings b on b.booking_id = s.booking_id\n" +
                 "where b.state in (2,4) and s.catalogue_id in (%s)";
         try (Connection con = DriverManager.getConnection(urlSub, user, passwd);
@@ -548,7 +549,10 @@ public class ReportDaoImpl implements ReportDao {
             while (rs.next()) {
                 subscriptions.add(new Subscription(rs.getInt(1), rs.getInt(2), rs.getString(3),
                         rs.getString(4), rs.getString(5), rs.getInt(6), rs.getInt(7),
-                        getAllocationsFromString(rs.getString(8)), null));
+                        getAllocationsFromString(rs.getString(8)), null,
+                        new int[]{rs.getInt(9), rs.getInt(10), rs.getInt(11), rs.getInt(12),
+                                rs.getInt(13), rs.getInt(14), rs.getInt(15), rs.getInt(16),
+                                rs.getInt(17), rs.getInt(18), rs.getInt(19), rs.getInt(20)}));
             }
         } catch (SQLException ex) {
             System.err.println(ex.getMessage());

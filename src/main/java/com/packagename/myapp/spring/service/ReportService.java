@@ -304,7 +304,6 @@ public class ReportService {
         List<CatalogPriceWithService> catalogPrices = reportDao.getAllCatalogPricesForPublicationsWithServicePrice(publicationEntities);
         Map<Integer, List<CatalogPriceWithService>> catalogPriceMap = catalogPrices.stream().collect(groupingBy(CatalogPriceWithService::getElementId));
         List<String> dataToFile = new ArrayList<>();
-        final int[] entityCount = {0};
         publicationEntities.forEach(entity -> {
             List<CatalogPriceWithService> catalogPricesForPublication = catalogPriceMap.get(entity.getId());
             final CatalogPriceWithService[] oldPrice = {null};
@@ -323,27 +322,23 @@ public class ReportService {
                         if (subByParamsMap != null) {
                             List<Subscription> subByParam = subByParamsMap.get(Integer.valueOf(price.getRegionId()));
                             if(subByParam != null) {
-                                entity.setCirculation(searchCount(entity.getOutputMonthCount(), subByParam));
+                                entity.setCirculation(searchCount(subByParam));
                                 if (entity.getCirculation() > 0) dataToFile.add(AddLineForSocialReport(entity, price));
                             }
                         }
                     }
                 });
-                entityCount[0]++;
-                if (entityCount[0] % 100 == 0) System.out.println("Выполнено " + entityCount[0] + " из " + publicationEntities.size());
             }
         });
         writeTextToFile(dataToFile);
         System.out.println("Ok");
     }
 
-    private Integer searchCount(Integer[] outputMonthCount, List<Subscription> subByParam) {
+    private Integer searchCount(List<Subscription> subByParam) {
         Integer count = 0;
         for (Subscription sub : subByParam) {
-            for (int i = 0; i < sub.getAllocation().length; i++) {
-                if (outputMonthCount[i] > 0) {
-                    count += sub.getAllocation()[i] * outputMonthCount[i];
-                }
+            for (int i = 0; i < sub.getMspAllocation().length; i++) {
+                count += sub.getMspAllocation()[i];
             }
         }
         return count;
@@ -356,22 +351,78 @@ public class ReportService {
     private String AddLineForSocialReport(CatalogPublicationEntity entity, CatalogPriceWithService price) {
         if (price.getMspPriceNoVat() > 0) {
             Double subPrice = generateSubscriptionPrice(price.getMspPriceNoVat(), price.getServicePriceNotVat(), false);
-            Double discount = entity.getIsSocial() ? (price.getServicePriceNotVat() / 3) * 1.2 : 0;
-            Double servicePriceWithoutDiscount = (price.getServicePrice() * 1.2) + discount;
-            Double subPriceWithoutDiscount = servicePriceWithoutDiscount + reportDao.getPriceWithVat(price.getMspPriceNoVat(), price.getVat());
-            Integer discountPercent = discount == 0 ? 0 : 25;
-            return entity.getId() + "\t" + entity.getLegalHid() + "\t" + entity.getTitle() + "\t" + entity.getCirculation() + "\t"
-                    + reportDao.getPriceWithVat(price.getIssuePriceNoVat(), price.getVat()) + "\t" + reportDao.getPriceWithVat(price.getMspPriceNoVat(), price.getVat())
-                    + "\t" + subPriceWithoutDiscount + "\t" + subPrice  + "\t" + discount + "\t" + discountPercent;
+            if (entity.getDiscount() == 100) {
+                return entity.getId() + "\t" + entity.getLegalHid() + "\t" + entity.getTitle() + "\t" + entity.getCirculation() + "\t"
+                        + reportDao.getPriceWithVat(price.getIssuePriceNoVat(), price.getVat()) + "\t" + reportDao.getPriceWithVat(price.getMspPriceNoVat(), price.getVat())
+                        + "\t" + subPrice + "\t" + subPrice  + "\t" + price.getServicePriceNotVat() * 1.2 + "\t" + 0 + "\t" + 100;
+            } else if (entity.getDiscount() == 0) {
+                Double discount = entity.getIsSocial() ? (price.getServicePriceNotVat() / 3) * 1.2 : 0;
+                Integer discountPercent = discount == 0 ? 0 : 25;
+                Double servicePriceWithoutDiscount = price.getServicePriceNotVat() * 1.2 + discount;
+                Double subPriceWithoutDiscount = servicePriceWithoutDiscount + reportDao.getPriceWithVat(price.getMspPriceNoVat(), price.getVat());
+                return entity.getId() + "\t" + entity.getLegalHid() + "\t" + entity.getTitle() + "\t" + entity.getCirculation() + "\t"
+                        + reportDao.getPriceWithVat(price.getIssuePriceNoVat(), price.getVat()) + "\t" + reportDao.getPriceWithVat(price.getMspPriceNoVat(), price.getVat())
+                        + "\t" + subPriceWithoutDiscount + "\t" + subPrice  + "\t" + 0 + "\t" + discount + "\t" + discountPercent;
+            } else {
+                if (entity.getIsSocial()) {
+                    Double servicePriceWithoutDiscount = (price.getServicePriceNotVat() * 1.2) / (1 - entity.getDiscount() / 100);
+                    Double servicePriceWithoutSocial = (price.getServicePriceNotVat() * 1.2) / 0.75;
+                    Double fullServicePrice = servicePriceWithoutDiscount / 0.75;
+                    Double discountPercent = 100 - ((0.75 * (1 - entity.getDiscount() / 100)) * 100);
+                    Double coef = discountPercent/(25 + entity.getDiscount());
+                    Double subPriceWithoutDiscount = fullServicePrice + reportDao.getPriceWithVat(price.getMspPriceNoVat(), price.getVat());
+                    Double discount = (fullServicePrice - servicePriceWithoutSocial) * coef;
+                    Double discountSocial = (fullServicePrice - servicePriceWithoutDiscount) * coef;
+                    return entity.getId() + "\t" + entity.getLegalHid() + "\t" + entity.getTitle() + "\t" + entity.getCirculation() + "\t"
+                            + reportDao.getPriceWithVat(price.getIssuePriceNoVat(), price.getVat()) + "\t" + reportDao.getPriceWithVat(price.getMspPriceNoVat(), price.getVat())
+                            + "\t" + subPriceWithoutDiscount + "\t" + subPrice + "\t" + discount + "\t" + discountSocial + "\t" + discountPercent;
+                } else {
+                    Double servicePriceWithoutDiscount = (price.getServicePriceNotVat() * 1.2) / (1 - entity.getDiscount() / 100);
+                    Double discount = servicePriceWithoutDiscount - (price.getServicePrice() * 1.2);
+                    Double subPriceWithoutDiscount = reportDao.getPriceWithVat(price.getMspPriceNoVat(), price.getVat()) + servicePriceWithoutDiscount;
+                    return entity.getId() + "\t" + entity.getLegalHid() + "\t" + entity.getTitle() + "\t" + entity.getCirculation() + "\t"
+                            + reportDao.getPriceWithVat(price.getIssuePriceNoVat(), price.getVat()) + "\t" + reportDao.getPriceWithVat(price.getMspPriceNoVat(), price.getVat())
+                            + "\t" + subPriceWithoutDiscount + "\t" + subPrice + "\t" + discount + "\t" + 0 + "\t" + entity.getDiscount();
+                }
+            }
         } else {
             Double subPrice = generateSubscriptionPrice(price.getMspPrice(),price.getServicePrice(), true);
-            Double discount = entity.getIsSocial() ? price.getServicePrice() / 3 : 0;
-            Double servicePriceWithoutDiscount = price.getServicePrice() + discount;
-            Integer discountPercent = discount == 0 ? 0 : 25;
-            Double subPriceWithoutDiscount = servicePriceWithoutDiscount + price.getMspPrice();
-             return entity.getId() + "\t" + entity.getLegalHid() + "\t" + entity.getTitle() + "\t" + entity.getCirculation() + "\t"
-                     + reportDao.getPriceWithVat(price.getIssuePrice(), price.getVat()) + "\t" + price.getMspPrice() + "\t"
-                     + subPriceWithoutDiscount  + "\t" + subPrice +  "\t" + discount + "\t" + discountPercent;
+            if (entity.getDiscount() == 100) {
+                return entity.getId() + "\t" + entity.getLegalHid() + "\t" + entity.getTitle() + "\t" + entity.getCirculation() + "\t"
+                        + reportDao.getPriceWithVat(price.getIssuePrice(), price.getVat()) + "\t" + price.getMspPrice() + "\t"
+                        + subPrice  + "\t" + subPrice +  "\t" + price.getServicePrice() + "\t" + 0 + "\t" + 100;
+            } else if (entity.getDiscount() == 0) {
+                Double discount = entity.getIsSocial() ? price.getServicePrice() / 3 : 0;
+                Double servicePriceWithoutDiscount = price.getServicePrice() + discount;
+                Integer discountPercent = discount == 0 ? 0 : 25;
+                Double subPriceWithoutDiscount = servicePriceWithoutDiscount + price.getMspPrice();
+                return entity.getId() + "\t" + entity.getLegalHid() + "\t" + entity.getTitle() + "\t" + entity.getCirculation() + "\t"
+                        + reportDao.getPriceWithVat(price.getIssuePrice(), price.getVat()) + "\t" + price.getMspPrice() + "\t"
+                        + subPriceWithoutDiscount  + "\t" + subPrice + "\t" + 0 + "\t" + discount + "\t" + discountPercent;
+            } else {
+                if (entity.getIsSocial()) {
+                    Double servicePriceWithoutDiscount = price.getServicePrice() / (1 - entity.getDiscount() / 100);
+                    Double servicePriceWithoutSocial = price.getServicePrice() / 0.75;
+                    Double fullServicePrice = servicePriceWithoutDiscount / 0.75;
+                    Double discountPercent = 100 - ((0.75 * (1 - entity.getDiscount() / 100)) * 100);
+                    Double coef = discountPercent/(25 + entity.getDiscount());
+                    Double subPriceWithoutDiscount = fullServicePrice + price.getMspPrice();
+                    Double discount = (fullServicePrice - servicePriceWithoutSocial) * coef;
+                    Double discountSocial = (fullServicePrice - servicePriceWithoutDiscount) * coef;
+                    return entity.getId() + "\t" + entity.getLegalHid() + "\t" + entity.getTitle() + "\t" + entity.getCirculation() + "\t"
+                            + reportDao.getPriceWithVat(price.getIssuePrice(), price.getVat()) + "\t" + price.getMspPrice() + "\t"
+                            + subPriceWithoutDiscount  + "\t" + subPrice +  "\t" + discount + "\t" + discountSocial + "\t" + discountPercent;
+                } else {
+                    Double servicePriceWithoutDiscount = price.getServicePrice() / (1 - entity.getDiscount() / 100);
+                    Double discount = servicePriceWithoutDiscount - price.getServicePrice();
+                    Double subPriceWithoutDiscount = price.getMspPrice() + servicePriceWithoutDiscount;
+                    return entity.getId() + "\t" + entity.getLegalHid() + "\t" + entity.getTitle() + "\t" + entity.getCirculation() + "\t"
+                            + reportDao.getPriceWithVat(price.getIssuePrice(), price.getVat()) + "\t" + price.getMspPrice() + "\t"
+                            + subPriceWithoutDiscount  + "\t" + subPrice +  "\t" + discount +  "\t" + 0 + "\t" + entity.getDiscount();
+                }
+
+            }
+
         }
     }
 

@@ -16,5 +16,6 @@ public class Subscription {
     private Integer minSubsPeriod;
     private int[] allocation;
     private Integer count;
+    private int[] mspAllocation;
 
 }

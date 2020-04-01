@@ -1,11 +1,14 @@
 package com.packagename.myapp.spring.ui.parser;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.packagename.myapp.spring.entity.parser.newFormat.Accept;
 import com.packagename.myapp.spring.entity.parser.newFormat.ConnectivityThematicEntity;
 import com.packagename.myapp.spring.entity.parser.newFormat.Directory;
 import com.packagename.myapp.spring.entity.parser.newFormat.Format;
 import com.packagename.myapp.spring.entity.parser.oldFormat.*;
+import com.packagename.myapp.spring.entity.parser.serialezer.BooleanAs01Serializer;
+import com.packagename.myapp.spring.entity.parser.serialezer.LocalDateAsNumberSerializer;
 import com.packagename.myapp.spring.service.DocumentParseService;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
@@ -202,6 +205,10 @@ public class FileParseLayout extends VerticalLayout {
 
     private void whiteJsonToFile(Format endJson) {
         ObjectMapper mapper = new ObjectMapper();
+        SimpleModule module = new SimpleModule();
+        module.addSerializer(LocalDate.class, new LocalDateAsNumberSerializer());
+        module.addSerializer(Boolean.class, new BooleanAs01Serializer());
+        mapper.registerModule(module);
         try {
             mapper.writeValue(new File("C:\\Users\\assze\\Desktop\\format.json"),endJson);
         } catch (IOException e) {
