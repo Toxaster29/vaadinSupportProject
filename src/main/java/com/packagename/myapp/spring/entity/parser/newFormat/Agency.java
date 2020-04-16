@@ -8,8 +8,8 @@ import lombok.Data;
 public class Agency {
 
     private Integer id;
-    private Integer supplyId;
-    private Integer parentId;
+    private Integer supplyid;
+    private Integer parentid;
     private String name;
     private String inn;
     private String email;

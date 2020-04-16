@@ -1,6 +1,6 @@
 package com.packagename.myapp.spring.ui.other;
 
-import com.packagename.myapp.spring.entity.contract.UfpsEntity;
+import com.packagename.myapp.spring.entity.ufps.UfpsEntity;
 import com.packagename.myapp.spring.service.ResourceService;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -24,7 +24,27 @@ public class ufpsLayout extends VerticalLayout {
             String outText = getUfpsFromText(area.getValue());
             outArea.setValue(outText);
         });
-        add(area, button, outArea);
+        Button groupByMacro = new Button("Group by macro");
+        groupByMacro.addClickListener(click -> {
+            String outText = groupUfps(area.getValue());
+            outArea.setValue(outText);
+        });
+        add(area, button, groupByMacro, outArea);
+    }
+
+    private String groupUfps(String value) {
+        List<UfpsEntity> ufpsEntities = resourceService.getUfpsEntityList();
+        String[] lines = value.split("\n");
+        for (String line : lines) {
+            String[] words = line.split("\t");
+            try {
+                String id = ufpsEntities.stream().filter(c -> c.getDescription().toUpperCase().equals(words[0].toUpperCase())).findFirst().get().getId();
+                System.out.println(words[1] + "\t" + id);
+            } catch (Exception e) {
+                System.out.println(words[0]);
+            }
+        }
+        return "";
     }
 
     private String getUfpsFromText(String value) {

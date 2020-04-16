@@ -37,25 +37,25 @@ public class CatalogParamsDialog extends Dialog {
         subsVariantGrid.setSelectionMode(Grid.SelectionMode.SINGLE);
         termGrid.addColumn(Term::getMonth).setHeader("Month");
         termGrid.addColumn(Term::getDate).setHeader("Date");
-        subsVariantGrid.addColumn(SubsVariant::getAcceptId).setHeader("Accept id");
+        subsVariantGrid.addColumn(SubsVariant::getAcceptid).setHeader("Accept id");
         subsVariantGrid.addColumn(SubsVariant::getRegionsToString).setHeader("Regions");
         subsVariantGrid.addColumn(SubsVariant::getMsp).setHeader("Msp");
         subsVariantGrid.addColumn(SubsVariant::getPrice).setHeader("Price");
         subsVariantGrid.addColumn(SubsVariant::getVatId).setHeader("Vat id");
         subsVariantGrid.addColumn(SubsVariant::getState).setHeader("State");
-        subsVersionGrid.addColumn(SubsVersion::getPublicationId).setHeader("Publication Id");
-        subsVersionGrid.addColumn(SubsVersion::getPublVerionId).setHeader("Publverion Id");
+        subsVersionGrid.addColumn(SubsVersion::getPublicationid).setHeader("Publication Id");
+        subsVersionGrid.addColumn(SubsVersion::getPublversionid).setHeader("Publverion Id");
     }
 
     public void buildDialog(Catalog catalog) {
         if (catalog.getTerm() != null) {
             termGrid.setItems(catalog.getTerm());
         }
-        if (catalog.getSubsVersion() != null) {
-            subsVersionGrid.setItems(catalog.getSubsVersion());
+        if (catalog.getSubsversion() != null) {
+            subsVersionGrid.setItems(catalog.getSubsversion());
         }
-        if (catalog.getSubsVariant() != null) {
-            subsVariantGrid.setItems(catalog.getSubsVariant());
+        if (catalog.getSubsvariant() != null) {
+            subsVariantGrid.setItems(catalog.getSubsvariant());
         }
     }
 

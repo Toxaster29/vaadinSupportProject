@@ -7,7 +7,7 @@ import lombok.Data;
 @AllArgsConstructor
 public class SubsVersion {
 
-    private Long publicationId;
-    private Long publVerionId;
+    private Long publicationid;
+    private Long publversionid;
 
 }

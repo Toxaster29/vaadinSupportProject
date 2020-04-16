@@ -23,7 +23,7 @@ public class AgencyLayout extends VerticalLayout {
         agencyGrid.setSizeFull();
         agencyGrid.setSelectionMode(Grid.SelectionMode.SINGLE);
         agencyGrid.addColumn(Agency::getId).setHeader("Id");
-        agencyGrid.addColumn(Agency::getSupplyId).setHeader("Supply Id");
+        agencyGrid.addColumn(Agency::getSupplyid).setHeader("Supply Id");
         agencyGrid.addColumn(Agency::getName).setHeader("Name");
         agencyGrid.addColumn(Agency::getInn).setHeader("Inn");
         agencyGrid.addColumn(Agency::getEmail).setHeader("Email");

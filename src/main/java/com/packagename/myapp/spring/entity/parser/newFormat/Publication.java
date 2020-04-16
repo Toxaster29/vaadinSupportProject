@@ -12,22 +12,22 @@ import java.util.List;
 public class Publication {
 
     private Long id;
-    private Integer publTypeId;
+    private Integer publtypeid;
     private String title;
     private String annotation;
     private Integer ageId;
-    private Integer countryId;
+    private Integer countryid;
     private Integer[] regions;
     private Integer[] languages;
     private Integer[] thematics;
     private Byte social;
     private String issn;
     private Long inn;
-    private Integer vatId;
-    private String mediaRegNum;
-    private LocalDate mediaRegDate;
+    private Integer vatid;
+    private String mediaregnum;
+    private LocalDate mediaregdate;
     private Image img;
-    private List<PublVersion> publVersion;
+    private List<PublVersion> publversion;
 
     public String getRegionsToString() {
         if (this.regions != null) {

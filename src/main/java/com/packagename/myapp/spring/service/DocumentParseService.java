@@ -4,7 +4,6 @@ import com.packagename.myapp.spring.dto.ParserDao;
 import com.packagename.myapp.spring.entity.parser.DirectoryData;
 import com.packagename.myapp.spring.entity.parser.newFormat.*;
 import com.packagename.myapp.spring.entity.parser.oldFormat.*;
-import com.vaadin.flow.component.ItemLabelGenerator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -134,7 +133,7 @@ public class DocumentParseService {
         List<SubsVersion> subsVersions = new ArrayList<>();
         for (Publication publ : publications) {
                 if (publ.getId().equals(getIdWithoutLetter(index))) {
-                    publ.getPublVersion().forEach(version -> {
+                    publ.getPublversion().forEach(version -> {
                         subsVersions.add(new SubsVersion(publ.getId(), version.getId()));
                     });
                     break;
@@ -192,7 +191,7 @@ public class DocumentParseService {
                 .map(data -> new Directory(data.getId(), data.getName())).collect(Collectors.toList()));
         endJson.setClient(directoryData.stream().filter(data -> data.getDirectoryId() == 4)
                 .map(data -> new Directory(data.getId(), data.getName())).collect(Collectors.toList()));
-        endJson.setPublType(directoryData.stream().filter(data -> data.getDirectoryId() == 5)
+        endJson.setPubltype(directoryData.stream().filter(data -> data.getDirectoryId() == 5)
                 .map(data -> new Directory(data.getId(), data.getName())).collect(Collectors.toList()));
         endJson.setVat(directoryData.stream().filter(data -> data.getDirectoryId() == 6)
                 .map(data -> new Directory(data.getId(), data.getName())).collect(Collectors.toList()));
@@ -204,7 +203,7 @@ public class DocumentParseService {
                 .map(data -> new Directory(data.getId(), data.getName())).collect(Collectors.toList()));
         endJson.setTime(directoryData.stream().filter(data -> data.getDirectoryId() == 10)
                 .map(data -> new Directory(data.getId(), data.getName())).collect(Collectors.toList()));
-        endJson.setPeriodType(directoryData.stream().filter(data -> data.getDirectoryId() == 11)
+        endJson.setPeriodtype(directoryData.stream().filter(data -> data.getDirectoryId() == 11)
                 .map(data -> new Directory(data.getId(), data.getName())).collect(Collectors.toList()));
         endJson.setRegion(directoryData.stream().filter(data -> data.getDirectoryId() == 12)
                 .map(data -> new Directory(data.getId(), data.getName())).collect(Collectors.toList()));
@@ -227,7 +226,7 @@ public class DocumentParseService {
         publications.forEach(sPublication -> {
             SIndex index = getIndexByPublicationId(indexList, sPublication.getId());
             Publication publication = new Publication(getIdWithoutLetter(sPublication.getId()),
-                    getPublicationTypeIdByName(sPublication.getType(), format.getPublType()),
+                    getPublicationTypeIdByName(sPublication.getType(), format.getPubltype()),
                     sPublication.getName(),
                     sPublication.getAnnotation(),
                     getAgeFromName(sPublication.getName(), format.getAge()),
@@ -291,7 +290,7 @@ public class DocumentParseService {
                     getIssueForPublVersion(sPublication)
             ));
         }
-        publication.setPublVersion(publVersions);
+        publication.setPublversion(publVersions);
     }
 
     private boolean allZeroFormatParams(String[] formats) {

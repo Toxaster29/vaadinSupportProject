@@ -25,10 +25,10 @@ public class CatalogLayout extends VerticalLayout {
         catalogGrid.addColumn(Catalog::getIndex).setHeader("Index");
         catalogGrid.addColumn(Catalog::getName).setHeader("Name");
         catalogGrid.addColumn(Catalog::getComment).setHeader("Comment");
-        catalogGrid.addColumn(Catalog::getAgencyId).setHeader("Agency Id");
-        catalogGrid.addColumn(Catalog::getDistributionId).setHeader("Distribution Id");
-        catalogGrid.addColumn(Catalog::getExpeditionId).setHeader("Expedition Id");
-        catalogGrid.addColumn(Catalog::getClientId).setHeader("Client Id");
+        catalogGrid.addColumn(Catalog::getAgencyid).setHeader("Agency Id");
+        catalogGrid.addColumn(Catalog::getDistributionid).setHeader("Distribution Id");
+        catalogGrid.addColumn(Catalog::getExpeditionid).setHeader("Expedition Id");
+        catalogGrid.addColumn(Catalog::getClientid).setHeader("Client Id");
         catalogGrid.addColumn(Catalog::getCellophane).setHeader("Cellophane");
         catalogGrid.addItemDoubleClickListener(click -> {
            if (click.getItem() != null) {

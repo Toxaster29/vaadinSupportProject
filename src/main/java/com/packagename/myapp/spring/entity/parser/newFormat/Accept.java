@@ -10,12 +10,12 @@ import java.time.LocalDate;
 public class Accept {
 
     private Integer id;
-    private Integer periodTypeId;
+    private Integer periodtypeid;
     private String name;
-    private LocalDate dateBeg;
-    private LocalDate dateEnd;
+    private LocalDate datebeg;
+    private LocalDate dateend;
     private Boolean adjust;
-    private LocalDate adjustDate;
+    private LocalDate adjustdate;
     private Byte priority;
 
 }

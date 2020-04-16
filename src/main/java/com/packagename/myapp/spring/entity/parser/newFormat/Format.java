@@ -18,7 +18,7 @@ public class Format {
     private List<Directory> supply;
     private List<Directory> expedition;
     private List<Directory> client;
-    private List<Directory> publType;
+    private List<Directory> publtype;
     private List<Directory> thematic;
     private List<Directory> vat;
     private List<Directory> age;
@@ -26,7 +26,7 @@ public class Format {
     private List<Directory> language;
     private List<Directory> format;
     private List<Directory> time;
-    private List<Directory> periodType;
+    private List<Directory> periodtype;
     private List<Directory> region;
     private List<Terrain> terrain;
     private List<Agency> agency;

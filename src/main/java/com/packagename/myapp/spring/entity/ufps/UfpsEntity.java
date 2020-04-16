@@ -1,4 +1,4 @@
-package com.packagename.myapp.spring.entity.contract;
+package com.packagename.myapp.spring.entity.ufps;
 
 public class UfpsEntity {
 

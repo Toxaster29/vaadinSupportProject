@@ -11,7 +11,7 @@ public class Terrain {
 
     private Integer id;
     private String name;
-    private Integer regionId;
+    private Integer regionid;
     private List<String> zipcodes;
 
     public String zipcodesToString() {

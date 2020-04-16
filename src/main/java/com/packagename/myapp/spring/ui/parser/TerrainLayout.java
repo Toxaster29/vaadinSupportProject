@@ -20,7 +20,7 @@ public class TerrainLayout extends VerticalLayout {
         terrainGrid.setSizeFull();
         terrainGrid.addColumn(Terrain::getId).setHeader("Id");
         terrainGrid.addColumn(Terrain::getName).setHeader("Name");
-        terrainGrid.addColumn(Terrain::getRegionId).setHeader("Region Id");
+        terrainGrid.addColumn(Terrain::getRegionid).setHeader("Region Id");
         terrainGrid.addColumn(Terrain::zipcodesToString).setHeader("Zip codes");
         add(terrainGrid);
     }

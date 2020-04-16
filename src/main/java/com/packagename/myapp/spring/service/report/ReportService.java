@@ -1,6 +1,6 @@
-package com.packagename.myapp.spring.service;
+package com.packagename.myapp.spring.service.report;
 
-import com.packagename.myapp.spring.dto.ReportDao;
+import com.packagename.myapp.spring.dto.report.ReportDao;
 import com.packagename.myapp.spring.entity.report.*;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -258,7 +258,7 @@ public class ReportService {
         return false;
     }
 
-    private void writeTextToFile(List<String> dataToFile) {
+    public void writeTextToFile(List<String> dataToFile) {
         PrintWriter pw = null;
         try {
             pw = new PrintWriter(new FileWriter("C:\\Users\\assze\\Desktop\\reportAll2020.txt"));

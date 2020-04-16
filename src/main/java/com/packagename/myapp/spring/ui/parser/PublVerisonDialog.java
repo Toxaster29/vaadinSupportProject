@@ -29,7 +29,7 @@ public class PublVerisonDialog extends Dialog {
         publVerisonDialogGrid.addColumn(PublVersion::getStandard).setHeader("Standard");
         publVerisonDialogGrid.addColumn(PublVersion::getWeight).setHeader("Weight");
         publVerisonDialogGrid.addColumn(PublVersion::getPages).setHeader("Pages");
-        publVerisonDialogGrid.addColumn(PublVersion::getFormatId).setHeader("Format Id");
+        publVerisonDialogGrid.addColumn(PublVersion::getFormatid).setHeader("Format Id");
         publVerisonDialogGrid.addColumn(PublVersion::getHeight).setHeader("Height");
         publVerisonDialogGrid.addColumn(PublVersion::getWidth).setHeader("Width");
         publVerisonDialogGrid.addColumn(PublVersion::getTimeId).setHeader("Time Id");

@@ -3,7 +3,7 @@ package com.packagename.myapp.spring.dto;
 import com.packagename.myapp.spring.entity.contract.ContractEntity;
 import com.packagename.myapp.spring.entity.DataBaseProperties;
 import com.packagename.myapp.spring.entity.contract.EntityFromTable;
-import com.packagename.myapp.spring.entity.contract.UfpsEntity;
+import com.packagename.myapp.spring.entity.ufps.UfpsEntity;
 import com.packagename.myapp.spring.service.ResourceService;
 import com.packagename.myapp.spring.service.SQLGeneratorService;
 import org.springframework.beans.factory.annotation.Autowired;

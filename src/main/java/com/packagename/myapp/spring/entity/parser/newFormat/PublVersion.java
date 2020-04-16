@@ -16,7 +16,7 @@ public class PublVersion {
     private Integer standard;
     private Integer weight;
     private Integer pages;
-    private Integer formatId;
+    private Integer formatid;
     private Integer height;
     private Integer width;
     private Integer timeId;

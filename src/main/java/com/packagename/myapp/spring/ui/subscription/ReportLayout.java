@@ -1,9 +1,11 @@
 package com.packagename.myapp.spring.ui.subscription;
 
-import com.packagename.myapp.spring.service.ReportService;
+import com.packagename.myapp.spring.service.report.OnlineReportService;
+import com.packagename.myapp.spring.service.report.ReportService;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.Label;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.Route;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,15 +16,17 @@ import org.springframework.stereotype.Component;
 public class ReportLayout extends VerticalLayout {
 
     private ReportService reportService;
+    private OnlineReportService onlineReportService;
 
-    public ReportLayout(@Autowired ReportService reportService) {
+    public ReportLayout(@Autowired ReportService reportService, @Autowired OnlineReportService onlineReportService) {
         this.reportService = reportService;
+        this.onlineReportService = onlineReportService;
         initHeader();
         initReportSelectorLayout();
     }
 
     private void initReportSelectorLayout() {
-        TextField publisherIdField = new TextField("Publisher hid");
+        TextArea publisherIdField = new TextArea("Publisher hid");
         Button generateReportButton = new Button("Create report for All subscription");
         generateReportButton.addClickListener(click -> {
            reportService.createAllocationReportForSubscription();
@@ -57,8 +61,12 @@ public class ReportLayout extends VerticalLayout {
         reportForSocialPublication.addClickListener(click -> {
             reportService.createReportForSocial();
         });
+        Button onlineReportByDate = new Button("Online report by date");
+        onlineReportByDate.addClickListener(click -> {
+            onlineReportService.createReportByDate(publisherIdField.getValue());
+        });
         add(generateReportButton, publisherIdField, generatePublisherReportButton, addDataToReport, childrenDataReport,
-                onlineReportWithRegion, reportByPublicationForPeriod, reportForSocialPublication);
+                onlineReportWithRegion, reportByPublicationForPeriod, reportForSocialPublication, onlineReportByDate);
     }
 
     private void initHeader() {

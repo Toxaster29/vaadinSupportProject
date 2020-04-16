@@ -7,7 +7,7 @@ import lombok.Data;
 @AllArgsConstructor
 public class SubsVariant {
 
-    private Integer acceptId;
+    private Integer acceptid;
     private Integer[] regions;
     private Integer msp;
     private Integer price;

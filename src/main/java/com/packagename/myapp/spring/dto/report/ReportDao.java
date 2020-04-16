@@ -1,4 +1,4 @@
-package com.packagename.myapp.spring.dto;
+package com.packagename.myapp.spring.dto.report;
 
 import com.packagename.myapp.spring.entity.report.*;
 
