@@ -247,7 +247,7 @@ public class ReportService {
                 dataToFile.add(createFileLine(entity, price, deliveryInfo));
             });
         });
-        writeTextToFile(dataToFile);
+        writeTextToFile(dataToFile, "ReportData");
         System.out.println("This is over!");
     }
 
@@ -258,10 +258,10 @@ public class ReportService {
         return false;
     }
 
-    public void writeTextToFile(List<String> dataToFile) {
+    public void writeTextToFile(List<String> dataToFile, String fileName) {
         PrintWriter pw = null;
         try {
-            pw = new PrintWriter(new FileWriter("C:\\Users\\assze\\Desktop\\reportAll2020.txt"));
+            pw = new PrintWriter(new FileWriter("C:\\Users\\assze\\Desktop\\" + fileName));
             for (String line : dataToFile) {
                 pw.write(line + "\n");
             }
@@ -330,7 +330,7 @@ public class ReportService {
                 });
             }
         });
-        writeTextToFile(dataToFile);
+        writeTextToFile(dataToFile, "ReportData");
         System.out.println("Ok");
     }
 

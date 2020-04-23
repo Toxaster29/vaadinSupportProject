@@ -36,16 +36,8 @@ public class UfpsEntity {
         return description;
     }
 
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public String getDescriptionEISK() {
-        return descriptionEISK;
-    }
-
-    public void setDescriptionEISK(String descriptionEISK) {
-        this.descriptionEISK = descriptionEISK;
+    public Integer getIntId() {
+        return Integer.parseInt(id);
     }
 
     public String getIndex() {

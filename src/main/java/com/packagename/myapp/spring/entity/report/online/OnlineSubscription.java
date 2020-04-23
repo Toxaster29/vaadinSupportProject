@@ -24,5 +24,6 @@ public class OnlineSubscription {
     private Double subPrice;
     private String postalCode;
     private int year;
+    private Integer regionBuyCode;
 
 }

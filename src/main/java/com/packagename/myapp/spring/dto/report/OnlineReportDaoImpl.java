@@ -1,13 +1,13 @@
 package com.packagename.myapp.spring.dto.report;
 
 import com.packagename.myapp.spring.entity.report.CatalogPeriod;
+import com.packagename.myapp.spring.entity.report.online.OnlineOrderInfo;
 import com.packagename.myapp.spring.entity.report.online.OnlineSubscription;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Repository;
 
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 @Repository
 public class OnlineReportDaoImpl implements OnlineReportDao {
@@ -15,6 +15,7 @@ public class OnlineReportDaoImpl implements OnlineReportDao {
     private static String urlCatalog = "jdbc:postgresql://localhost:5432/catalogue-service";
     private static String urlSub = "jdbc:postgresql://localhost:5432/sub_subscription_service";
     private static String subsContextUrl = "jdbc:postgresql://localhost:5432/subscontext";
+    private static String treatmentUrl = "jdbc:postgresql://localhost:5432/subs_treatment_service";
     private static String user = "postgres";
     private static String passwd = "123";
 
@@ -37,7 +38,7 @@ public class OnlineReportDaoImpl implements OnlineReportDao {
                         rs.getInt(12), rs.getInt(13), rs.getInt(14), rs.getInt(15),
                         rs.getInt(16), rs.getInt(17), rs.getInt(18), rs.getInt(19),
                         rs.getInt(20)}, getAllocationsFromString(rs.getString(21)), rs.getInt(22),
-                        null, null, rs.getString(23), year));
+                        null, null, rs.getString(23), year, null));
             }
         } catch (SQLException ex) {
             System.err.println(ex.getMessage());
@@ -65,5 +66,40 @@ public class OnlineReportDaoImpl implements OnlineReportDao {
             System.err.println(ex.getMessage());
         }
         return catalogPeriods;
+    }
+
+    @Override
+    public List<OnlineOrderInfo> getOnlineOrderInfo(Set<Integer> orderIdSet) {
+        String sql = "SELECT order_id, hid FROM public.orders where order_id in (%s)";
+        String ids = StringUtils.join(orderIdSet, ",");
+        List<OnlineOrderInfo> onlineOrderInfoList = new ArrayList<>();
+        try (Connection con = DriverManager.getConnection(subsContextUrl, user, passwd);
+             PreparedStatement pst = con.prepareStatement(String.format(sql, ids));
+             ResultSet rs = pst.executeQuery()) {
+            while (rs.next()) {
+                onlineOrderInfoList.add(new OnlineOrderInfo(rs.getInt(1), rs.getString(2), null));
+            }
+        } catch (SQLException ex) {
+            System.err.println(ex.getMessage());
+        }
+        return onlineOrderInfoList;
+    }
+
+    @Override
+    public Map<String, Integer> getAllTreatmentByZipCodes(String zips) {
+        Map<String, Integer> treatmentMap = new HashMap<>();
+        String sql = "SELECT zl.zip_code, tn.tcfps_code FROM public.zip_links zl\n" +
+                "join treatment_nodes  tn on zl.treatment_node_id = tn.treatment_node_id \n" +
+                "where zl.zip_code in (%s) and zl.publication_type = 0";
+        try (Connection con = DriverManager.getConnection(treatmentUrl, user, passwd);
+             PreparedStatement pst = con.prepareStatement(String.format(sql, zips));
+             ResultSet rs = pst.executeQuery()) {
+            while (rs.next()) {
+                treatmentMap.put(rs.getString(1), rs.getInt(2));
+            }
+        } catch (SQLException ex) {
+            System.err.println(ex.getMessage());
+        }
+        return treatmentMap;
     }
 }

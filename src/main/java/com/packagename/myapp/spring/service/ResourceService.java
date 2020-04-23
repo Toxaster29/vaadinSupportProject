@@ -6,7 +6,9 @@ import org.springframework.stereotype.Service;
 import java.io.*;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class ResourceService {
@@ -45,5 +47,41 @@ public class ResourceService {
     }
 
 
+    public Map<Integer, String> getMacroRegionEntityMap() {
+            Map<Integer, String> macroRegionMap = new HashMap<>();
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(
+                new FileInputStream(getFileFromResources("macroRegion.txt")), "UTF8"))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                String[] entityArray = line.split("\t");
+                macroRegionMap.put(Integer.parseInt(entityArray[1]), entityArray[0]);
+            }
+            return macroRegionMap;
+        } catch (FileNotFoundException e) {
+            System.err.println(e.getMessage());
+            return macroRegionMap;
+        } catch (IOException ex) {
+            System.err.println(ex.getMessage());
+            return macroRegionMap;
+        }
+    }
 
+    public Map<String, String> getHidInfoMap() {
+        Map<String, String> hidMap = new HashMap<>();
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(
+                new FileInputStream(getFileFromResources("hidInfo.txt")), "UTF8"))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                String[] entityArray = line.split("\t");
+                hidMap.put(entityArray[0], entityArray[1]);
+            }
+            return hidMap;
+        } catch (FileNotFoundException e) {
+            System.err.println(e.getMessage());
+            return hidMap;
+        } catch (IOException ex) {
+            System.err.println(ex.getMessage());
+            return hidMap;
+        }
+    }
 }
