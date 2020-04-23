@@ -1,5 +1,7 @@
 package com.packagename.myapp.spring.service;
 
+import com.packagename.myapp.spring.dto.ExcelParserDao;
+import com.packagename.myapp.spring.entity.contract.ContractEntity;
 import com.packagename.myapp.spring.entity.contract.EntityFromTable;
 import com.packagename.myapp.spring.entity.contract.TableMainData;
 import com.packagename.myapp.spring.entity.excelParser.PublisherFromExcel;
@@ -15,17 +17,20 @@ import java.io.InputStream;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static java.util.stream.Collectors.groupingBy;
 
 @Service
 public class ExcelParserService {
 
     @Autowired
     private static TypeParseService parseService = new TypeParseService();
+
+    @Autowired
+    ExcelParserDao excelParserDao;
+
     private int publisherIdCell = 0;
     private int contractIdCell = 1;
     private int dateEarlyStart = 2;
@@ -198,6 +203,8 @@ public class ExcelParserService {
                         case 5:
                             fromExcel.setManager(currentCell.getStringCellValue());
                             break;
+                        case 6:
+                            fromExcel.setContractNumber(currentCell.getStringCellValue());
                     }
                 }
                 if (fromExcel.getPublisherName() == null) {
@@ -206,5 +213,37 @@ public class ExcelParserService {
             }
         }
         return publisherFromExcelList;
+    }
+
+    public void setNmcByExcelData(List<PublisherFromExcel> publisherFromExcelList) {
+        List<ContractEntity> contractList = excelParserDao.getContractForNmcUpdate(2020, 2);
+        Map<String, List<ContractEntity>> contractMapByPublisher = contractList.stream().collect(groupingBy(ContractEntity::getLegalHid));
+        publisherFromExcelList.forEach(publisher -> {
+            publisher.setContractId(selectContractFromMap(contractMapByPublisher, publisher.getHid(), publisher.getContractNumber()));
+        });
+        Map<Integer, List<PublisherFromExcel>> groupPublisherMap = publisherFromExcelList.stream()
+                .filter(publisher -> publisher.getContractId() > 0).collect(groupingBy(PublisherFromExcel::getPrice));
+        for (Map.Entry<Integer, List<PublisherFromExcel>> entry : groupPublisherMap.entrySet()) {
+            Set<Integer> ids = new LinkedHashSet<>(entry.getValue().stream().map(PublisherFromExcel::getContractId)
+                    .collect(Collectors.toList()));
+            excelParserDao.updateNmc(entry.getKey(), ids);
+        }
+        System.out.println("Complete");
+    }
+
+    private Integer selectContractFromMap(Map<String, List<ContractEntity>> contractMapByPublisher, String hid, String contractNumber) {
+        List<ContractEntity> contractList = contractMapByPublisher.get(hid);
+        if (contractList != null) {
+            List<ContractEntity> contractEntitiesByContractNumber = contractList.stream()
+                    .filter(contract -> contract.getDocNumber().equals(contractNumber)).collect(Collectors.toList());
+            if (contractEntitiesByContractNumber.size() == 1) {
+                return contractEntitiesByContractNumber.get(0).getId();
+            } else {
+                System.out.println("Издатель: " + hid + " не найдено контрактов с №" + contractNumber);
+            }
+        } else {
+            System.out.println("Издатель: " + hid + " нет контрактов");
+        }
+        return 0;
     }
 }

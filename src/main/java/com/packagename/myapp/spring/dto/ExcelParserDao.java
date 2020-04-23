@@ -1,11 +1,13 @@
 package com.packagename.myapp.spring.dto;
 
-import com.packagename.myapp.spring.entity.excelParser.PublisherFromExcel;
+import com.packagename.myapp.spring.entity.contract.ContractEntity;
 
 import java.util.List;
+import java.util.Set;
 
 public interface ExcelParserDao {
-    List<Integer> setNmcToPublisher(PublisherFromExcel publisher);
 
-    void updateNmc(PublisherFromExcel publisher, List<Integer> ids);
+    void updateNmc(Integer price, Set<Integer> ids);
+
+    List<ContractEntity> getContractForNmcUpdate(int year, int half);
 }

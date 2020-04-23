@@ -6,7 +6,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @NoArgsConstructor
-@AllArgsConstructor
 @Getter
 @Setter
 public class PublisherFromExcel {
@@ -16,5 +15,7 @@ public class PublisherFromExcel {
     private Integer price;
     private String hid;
     private String manager;
+    private String contractNumber;
+    private Integer contractId;
 
 }

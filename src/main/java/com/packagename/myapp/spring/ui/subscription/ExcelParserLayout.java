@@ -13,8 +13,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,13 +20,11 @@ import java.util.List;
 public class ExcelParserLayout extends VerticalLayout {
 
     private ExcelParserService excelParserService;
-    private ExcelParserDao excelParserDao;
 
     private List<PublisherFromExcel> publisherFromExcelList = new ArrayList<>();
 
-    public ExcelParserLayout(@Autowired ExcelParserService excelParserService, @Autowired ExcelParserDao excelParserDao) {
+    public ExcelParserLayout(@Autowired ExcelParserService excelParserService) {
         this.excelParserService = excelParserService;
-        this.excelParserDao = excelParserDao;
         initMainLayout();
     }
 
@@ -42,13 +38,7 @@ public class ExcelParserLayout extends VerticalLayout {
         });
         Button changeContractDataButton = new Button("Change data");
         changeContractDataButton.addClickListener(click -> {
-            publisherFromExcelList.forEach(publisher -> {
-                List<Integer> ids = excelParserDao.setNmcToPublisher(publisher);
-                if (ids.size() > 0) {
-                    excelParserDao.updateNmc(publisher, ids);
-                } else System.out.println(publisher.getHid());
-            });
-            System.out.println("Complete");
+            excelParserService.setNmcByExcelData(publisherFromExcelList);
         });
         add(upload, changeContractDataButton);
     }
