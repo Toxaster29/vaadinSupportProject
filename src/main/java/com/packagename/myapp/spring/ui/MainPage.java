@@ -104,8 +104,12 @@ public class MainPage extends VerticalLayout {
         annulmentButton.addClickListener(click -> {
             annulmentButton.getUI().ifPresent(ui -> ui.navigate("annulment"));
         });
+        Button kindnessTree = new Button("Kindness Tree");
+        kindnessTree.addClickListener(click -> {
+            kindnessTree.getUI().ifPresent(ui -> ui.navigate("kindness"));
+        });
         HorizontalLayout secondLineButtons = new HorizontalLayout(magazineButton, avatarButton, excelParserButton, cstButton,
-                dbInsertButton, ufpsButton, annulmentButton);
+                dbInsertButton, ufpsButton, annulmentButton, kindnessTree);
         subscriptionLayout.add(inlineButtons, secondLineButtons);
         add(subscriptionLayout);
     }
