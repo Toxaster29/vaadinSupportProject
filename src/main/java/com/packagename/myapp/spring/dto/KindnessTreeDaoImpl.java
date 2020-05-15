@@ -20,6 +20,7 @@ public class KindnessTreeDaoImpl implements KindnessTreeDao {
 
     private static String GET_ORGANIZATION_LIST_BY_TYPE_SQL = "SELECT acceptor_id from public.acceptors\n"+
             "where  active = true %s";
+    private static String GET_BIDS_IDS = "SELECT bid_id FROM public.bids where state in (1,2) and \"year\" = 2020  and a_jul = 0";
 
     @Override
     public List<Integer> getOrganizationIdsByType(int i) {
@@ -41,6 +42,21 @@ public class KindnessTreeDaoImpl implements KindnessTreeDao {
         List<Integer> ids = new ArrayList<>();
         try (Connection con = DriverManager.getConnection(url, user, passwd);
              PreparedStatement pst = con.prepareStatement(String.format(GET_ORGANIZATION_LIST_BY_TYPE_SQL, typeSql));
+             ResultSet rs = pst.executeQuery()) {
+            while (rs.next()) {
+                ids.add(rs.getInt(1));
+            }
+        } catch (SQLException ex) {
+            System.err.println(ex.getMessage());
+        }
+        return ids;
+    }
+
+    @Override
+    public List<Integer> getActiveBidIds() {
+        List<Integer> ids = new ArrayList<>();
+        try (Connection con = DriverManager.getConnection(url, user, passwd);
+             PreparedStatement pst = con.prepareStatement(GET_BIDS_IDS);
              ResultSet rs = pst.executeQuery()) {
             while (rs.next()) {
                 ids.add(rs.getInt(1));

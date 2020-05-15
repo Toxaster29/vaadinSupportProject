@@ -5,6 +5,8 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.Route;
 import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
@@ -57,26 +59,44 @@ public class KindnessTreeLayout extends VerticalLayout {
     }
 
     private void cancelOldBids() {
-
+        ResponseHandler<String> responseHandler = new MyResponseHandler();
+        List<Integer> ids = kindnessTreeDao.getActiveBidIds();
+        for (Integer id : ids) {
+            try (CloseableHttpClient httpclient = HttpClients.createDefault()) {
+                HttpPost httpPost = new HttpPost("http://localhost:8087/api/v1.0/bid/" + id + "/cancel");
+                httpPost.setHeader("Content-type", "application/json; charset=utf-8");
+                String json = "{\"hid\":\"165eb863-4f48-46f7-889c-539c5cf453a9\"}";
+                StringEntity stringEntity = new StringEntity(json,"UTF-8");
+                httpPost.setEntity(stringEntity);
+                httpclient.execute(httpPost, responseHandler);
+            } catch (IOException e) {
+                System.err.println(e);
+            }
+        }
     }
 
     private void createNewBids() {
         List<Integer> ids = kindnessTreeDao.getOrganizationIdsByType(0);
-        sendRequestForCreateNewBid(orphanageTypeIndexes, ids);
+        new SendRequestForCreateNewBid(orphanageTypeIndexes, ids).start();
 
         ids = kindnessTreeDao.getOrganizationIdsByType(1);
-        sendRequestForCreateNewBid(schoolTypeIndexes, ids);
+        new SendRequestForCreateNewBid(schoolTypeIndexes, ids).start();
 
         ids = kindnessTreeDao.getOrganizationIdsByType(2);
-        sendRequestForCreateNewBid(agedTypeIndexes, ids);
+        new SendRequestForCreateNewBid(agedTypeIndexes, ids).start();
 
         ids = kindnessTreeDao.getOrganizationIdsByType(3);
-        sendRequestForCreateNewBid(militaryTypeIndexes, ids);
+        new SendRequestForCreateNewBid(militaryTypeIndexes, ids).start();
 
         System.out.println("All good");
     }
 
-    ResponseHandler<String> responseHandler = response -> {
+}
+
+class MyResponseHandler implements ResponseHandler<String>{
+
+    @Override
+    public String handleResponse(HttpResponse response) throws ClientProtocolException, IOException {
         int status = response.getStatusLine().getStatusCode();
         if (status >= 200 && status < 300) {
             HttpEntity entity = response.getEntity();
@@ -85,9 +105,23 @@ public class KindnessTreeLayout extends VerticalLayout {
             System.out.println("Error");
         }
         return null;
-    };
+    }
+}
 
-    private void sendRequestForCreateNewBid(String[] orphanageTypeIndexes, List<Integer> ids) {
+class SendRequestForCreateNewBid extends Thread {
+
+    private String[] orphanageTypeIndexes;
+    private List<Integer> ids;
+    private ResponseHandler<String> responseHandler = new MyResponseHandler();
+
+    SendRequestForCreateNewBid(String[] orphanageTypeIndexes, List<Integer> ids) {
+        this.ids = ids;
+        this.orphanageTypeIndexes = orphanageTypeIndexes;
+    }
+
+    @Override
+    public void run() {
+
         for (Integer id : ids) {
             for (String index : orphanageTypeIndexes) {
                 try (CloseableHttpClient httpclient = HttpClients.createDefault()) {
@@ -110,6 +144,6 @@ public class KindnessTreeLayout extends VerticalLayout {
                 }
             }
         }
+        System.out.println(ids.size() + " организаций завершено");
     }
-
 }
