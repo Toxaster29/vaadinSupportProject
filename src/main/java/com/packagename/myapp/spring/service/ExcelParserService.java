@@ -182,34 +182,39 @@ public class ExcelParserService {
                 while (cellIterator.hasNext()) {
                     Cell currentCell = cellIterator.next();
                     switch (currentCell.getColumnIndex()) {
-                        case 1:
+                       /* case 0:
                             fromExcel.setPublisherName(currentCell.getStringCellValue());
-                            break;
-                        case 2:
+                            break;*/
+                        case 4:
                             if (currentCell.getCellTypeEnum().equals(CellType.STRING)) {
                                 fromExcel.setPrice(Integer.parseInt(currentCell.getStringCellValue()));
                             } else fromExcel.setPrice((int) currentCell.getNumericCellValue());
                             break;
-                        case 3:
+                        /*case 1:
                             if (currentCell.getCellTypeEnum().equals(CellType.STRING)) {
                                 fromExcel.setInn(currentCell.getStringCellValue());
                             } else fromExcel.setInn(String.valueOf(currentCell.getNumericCellValue()));
-                            break;
-                        case 4:
+                            break;*/
+                        case 0:
                             if (currentCell.getCellTypeEnum().equals(CellType.STRING)) {
                                 fromExcel.setHid(currentCell.getStringCellValue().trim());
                             } else fromExcel.setHid(String.valueOf(BigDecimal.valueOf(currentCell.getNumericCellValue()).setScale(0)));
                             break;
-                        case 5:
+                        /*case 5:
                             fromExcel.setManager(currentCell.getStringCellValue());
-                            break;
-                        case 6:
+                            break;*/
+                        case 1:
                             fromExcel.setContractNumber(currentCell.getStringCellValue());
+                            break;
+                        case 3:
+                            fromExcel.setEndDate(currentCell.getDateCellValue());
+                            break;
                     }
                 }
-                if (fromExcel.getPublisherName() == null) {
+                /*if (fromExcel.getPublisherName() == null) {
                     break;
-                } else publisherFromExcelList.add(fromExcel);
+                } else publisherFromExcelList.add(fromExcel);*/
+                publisherFromExcelList.add(fromExcel);
             }
         }
         return publisherFromExcelList;
@@ -245,5 +250,27 @@ public class ExcelParserService {
             System.out.println("Издатель: " + hid + " нет контрактов");
         }
         return 0;
+    }
+
+    public void setEndContractDate(List<PublisherFromExcel> publisherFromExcelList) {
+        List<ContractEntity> contractList = excelParserDao.getContractsByYearAndHalf(2019,2);
+        contractList.addAll(excelParserDao.getContractsByYearAndHalf(2020,1));
+        contractList.addAll(excelParserDao.getContractsByYearAndHalf(2020,2));
+        contractList.addAll(excelParserDao.getContractsByYearAndHalf(2021,1));
+        Map<String, List<ContractEntity>> contractMapByPublisher = contractList.stream().collect(groupingBy(ContractEntity::getLegalHid));
+        publisherFromExcelList.forEach(publisher -> {
+            final Integer[] count = {0};
+             List<ContractEntity> contracts = contractMapByPublisher.get(publisher.getHid());
+             if (contracts != null) {
+                 contracts.forEach(contract -> {
+                     if (contract.getDocNumber().equals(publisher.getContractNumber())) {
+                         excelParserDao.updateEndDate(contract.getId(), publisher.getEndDate());
+                         count[0]++;
+                     }
+                 });
+             }
+             System.out.println(publisher.getHid() + " изменено дат: " + count[0]);
+        });
+        System.out.println("Gotovo");
     }
 }

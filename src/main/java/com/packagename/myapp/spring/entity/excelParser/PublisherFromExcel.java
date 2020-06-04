@@ -1,9 +1,10 @@
 package com.packagename.myapp.spring.entity.excelParser;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
+import java.util.Date;
 
 @NoArgsConstructor
 @Getter
@@ -17,5 +18,6 @@ public class PublisherFromExcel {
     private String manager;
     private String contractNumber;
     private Integer contractId;
+    private Date endDate;
 
 }

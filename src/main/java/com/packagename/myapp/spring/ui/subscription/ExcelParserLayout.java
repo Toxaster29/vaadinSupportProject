@@ -40,7 +40,11 @@ public class ExcelParserLayout extends VerticalLayout {
         changeContractDataButton.addClickListener(click -> {
             excelParserService.setNmcByExcelData(publisherFromExcelList);
         });
-        add(upload, changeContractDataButton);
+        Button changeEndDate = new Button("Change end date");
+        changeEndDate.addClickListener(click -> {
+            excelParserService.setEndContractDate(publisherFromExcelList);
+        });
+        add(upload, changeContractDataButton, changeEndDate);
     }
 
     private Component createComponent(String mimeType, String fileName, InputStream inputStream) {

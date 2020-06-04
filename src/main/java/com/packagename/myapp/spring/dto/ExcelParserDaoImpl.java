@@ -6,6 +6,7 @@ import org.springframework.stereotype.Repository;
 
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -17,9 +18,12 @@ public class ExcelParserDaoImpl implements ExcelParserDao {
             "SET value='%s' \n" +
             "WHERE contract_id in (%s) and name = 'NMC'";
 
-    private static String contractUrl = "jdbc:postgresql://localhost:5432/contract";
-    private static String user = "postgres";
-    private static String passwd = "123";
+    private static String contractUrl = "jdbc:postgresql://localhost:8686/subs_contract";
+    //private static String contractUrl = "jdbc:postgresql://localhost:5432/contract";
+    private static String user = "subs_contract";
+    private static String passwd = "x8RACwzud9ExTGTk";
+    //private static String user = "postgres";
+    //private static String passwd = "123";
 
     @Override
     public void updateNmc(Integer price, Set<Integer> ids) {
@@ -52,5 +56,38 @@ public class ExcelParserDaoImpl implements ExcelParserDao {
             System.err.println(ex.getMessage());
         }
         return contractList;
+    }
+
+    @Override
+    public List<ContractEntity> getContractsByYearAndHalf(int year, int half) {
+        List<ContractEntity> contractList = new ArrayList<>();
+        String sql = "SELECT id, legal_hid,doc_number,doc_date,status FROM public.contract\n" +
+                "where \"year\" = %s and half = %s and status = 'ACTIVE'";
+        try {
+            Connection con = DriverManager.getConnection(contractUrl, user, passwd);
+            PreparedStatement pst = con.prepareStatement(String.format(sql, year, half));
+            ResultSet rs = pst.executeQuery();
+            while (rs.next()) {
+                contractList.add(new ContractEntity(rs.getInt(1), rs.getString(2), rs.getString(3),
+                        rs.getDate(4), rs.getString(5)));
+            }
+            con.close();
+        } catch (SQLException ex) {
+            System.err.println(ex.getMessage());
+        }
+        return contractList;
+    }
+
+    @Override
+    public void updateEndDate(Integer id, Date endDate) {
+        String sql = "UPDATE public.contract SET end_date='%s' WHERE id=%s\n";
+        try {
+            Connection con = DriverManager.getConnection(contractUrl, user, passwd);
+            Statement st = con.createStatement();
+            st.execute(String.format(sql, endDate, id));
+            con.close();
+        }  catch (SQLException ex) {
+            System.err.println(ex.getMessage());
+        }
     }
 }
