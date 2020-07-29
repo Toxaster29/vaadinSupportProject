@@ -25,5 +25,6 @@ public class OnlineSubscription {
     private String postalCode;
     private int year;
     private Integer regionBuyCode;
+    private String PublicationName;
 
 }

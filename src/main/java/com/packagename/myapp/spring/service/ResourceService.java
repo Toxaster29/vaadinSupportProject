@@ -16,7 +16,7 @@ public class ResourceService {
         public List<UfpsEntity> getUfpsEntityList() {
         List<UfpsEntity> ufpsEntities = new ArrayList<>();
         try (BufferedReader br = new BufferedReader(new InputStreamReader(
-                     new FileInputStream(getFileFromResources("ufps.txt")), "UTF8"))) {
+                     new FileInputStream("C:\\Users\\Антон\\IdeaProjects\\vaadinSupportProject\\src\\main\\resources\\ufps.txt"), "UTF8"))) {
             String line;
             while ((line = br.readLine()) != null) {
                 ufpsEntities.add(getEntityFromLine(line));
@@ -50,7 +50,7 @@ public class ResourceService {
     public Map<Integer, String> getMacroRegionEntityMap() {
             Map<Integer, String> macroRegionMap = new HashMap<>();
         try (BufferedReader br = new BufferedReader(new InputStreamReader(
-                new FileInputStream(getFileFromResources("macroRegion.txt")), "UTF8"))) {
+                new FileInputStream("C:\\Users\\Антон\\IdeaProjects\\vaadinSupportProject\\src\\main\\resources\\macroRegion.txt"), "UTF8"))) {
             String line;
             while ((line = br.readLine()) != null) {
                 String[] entityArray = line.split("\t");
@@ -69,7 +69,7 @@ public class ResourceService {
     public Map<String, String> getHidInfoMap() {
         Map<String, String> hidMap = new HashMap<>();
         try (BufferedReader br = new BufferedReader(new InputStreamReader(
-                new FileInputStream(getFileFromResources("hidInfo.txt")), "UTF8"))) {
+                new FileInputStream("C:\\Users\\Антон\\IdeaProjects\\vaadinSupportProject\\src\\main\\resources\\hidInfo.txt"), "UTF8"))) {
             String line;
             while ((line = br.readLine()) != null) {
                 String[] entityArray = line.split("\t");
