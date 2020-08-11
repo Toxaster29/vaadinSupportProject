@@ -35,6 +35,13 @@ public class ContractEntity {
         this.status = status;
     }
 
+    public ContractEntity(Integer id, String legalHid, Integer year, Integer half) {
+        this.id = id;
+        this.legalHid = legalHid;
+        this.year = year;
+        this.half = half;
+    }
+
     public void setId(Integer id) {
         this.id = id;
     }
