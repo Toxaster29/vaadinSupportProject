@@ -1,5 +1,7 @@
 package com.packagename.myapp.spring.service;
 
+import com.packagename.myapp.spring.entity.insert.EmailPhone;
+import com.packagename.myapp.spring.entity.report.online.PochtaIdInfo;
 import com.packagename.myapp.spring.entity.ufps.UfpsEntity;
 import org.springframework.stereotype.Service;
 
@@ -74,6 +76,25 @@ public class ResourceService {
             while ((line = br.readLine()) != null) {
                 String[] entityArray = line.split("\t");
                 hidMap.put(entityArray[0], entityArray[1]);
+            }
+            return hidMap;
+        } catch (FileNotFoundException e) {
+            System.err.println(e.getMessage());
+            return hidMap;
+        } catch (IOException ex) {
+            System.err.println(ex.getMessage());
+            return hidMap;
+        }
+    }
+
+    public Map<String, PochtaIdInfo> getHidEmailPhoneMap() {
+        Map<String, PochtaIdInfo> hidMap = new HashMap<>();
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(
+                new FileInputStream("C:\\Users\\Антон\\IdeaProjects\\vaadinSupportProject\\src\\main\\resources\\hidInfo.txt"), "UTF8"))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                String[] entityArray = line.split("\t");
+                hidMap.put(entityArray[0], new PochtaIdInfo(entityArray[1],entityArray[2], entityArray[3]));
             }
             return hidMap;
         } catch (FileNotFoundException e) {

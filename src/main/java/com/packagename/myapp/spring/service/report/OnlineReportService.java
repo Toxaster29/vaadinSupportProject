@@ -2,16 +2,15 @@ package com.packagename.myapp.spring.service.report;
 
 import com.packagename.myapp.spring.dto.report.OnlineReportDao;
 import com.packagename.myapp.spring.dto.report.ReportDao;
+import com.packagename.myapp.spring.entity.insert.EmailPhone;
 import com.packagename.myapp.spring.entity.report.CatalogPeriod;
 import com.packagename.myapp.spring.entity.report.CatalogPublicationEntity;
-import com.packagename.myapp.spring.entity.report.online.OnlineOrderEntity2019And2020;
-import com.packagename.myapp.spring.entity.report.online.OnlineOrderInfo;
-import com.packagename.myapp.spring.entity.report.online.OnlineSubscription;
-import com.packagename.myapp.spring.entity.report.online.TopPopularIndex;
+import com.packagename.myapp.spring.entity.report.online.*;
 import com.packagename.myapp.spring.entity.ufps.UfpsEntity;
 import com.packagename.myapp.spring.service.ResourceService;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -233,5 +232,86 @@ public class OnlineReportService {
             }
             return new TopPopularIndex(sub.getPublicationIndex(), sub.getPublicationName(), totalCount[0], orderCount, totalPrice[0]);
         } else return null;
+    }
+
+    public void createOnlineReportForMonth(String value) {
+        String startDate = "2020-01-01 00:00:01";
+        String endDate = "2020-01-31 23:59:59";
+        List<OnlineSubscription> subscriptions = onlineReportDao.getOnlineSubsByTime(startDate, endDate);
+        Set<Integer> orderIdSet = new LinkedHashSet<>(subscriptions.stream().map(OnlineSubscription::getOnlineOrderId).collect(Collectors.toList()));
+        List<OnlineOrderInfo> onlineOrderInfoList = onlineReportDao.getOnlineOrderInfo(orderIdSet);
+        if (value.equals("")) {
+            List<String> fileData = new ArrayList<>();
+            Set<String> hids = new LinkedHashSet<String>(onlineOrderInfoList.stream().map(OnlineOrderInfo::getClientHid).collect(Collectors.toList()));
+            fileData.addAll(hids);
+            reportService.writeTextToFile(fileData, "hids.txt");
+            System.out.println("Hids Ready");
+        } else {
+            List<String> fileData = new ArrayList<>();
+            Map<String, PochtaIdInfo> emailPhoneMap = resourceService.getHidEmailPhoneMap();
+            Map<Integer, OnlineOrderInfo> onlineOrderInfoMap = onlineOrderInfoList.stream().collect(Collectors.toMap(OnlineOrderInfo::getId, onlineOrderInfo -> onlineOrderInfo));
+            List<OrderElement> orderElements = onlineReportDao.getOnlineOrderElements(orderIdSet);
+            Map<Integer, List<OrderElement>> orderElementsMap =  orderElements.stream().collect(groupingBy(OrderElement::getOnlineOrderId));
+            List<CatalogPeriod> catalogPeriods = onlineReportDao.getPeriodList("year = 2020");
+            String periods = StringUtils.join(catalogPeriods.stream().map(CatalogPeriod::getPeriodId).collect(Collectors.toList()), ",");
+            List<CatalogOnlineEntity> publicationEntities = onlineReportDao.getOnlineCatalog(periods);
+            Map<Integer, Map<String, List<CatalogOnlineEntity>>> publicationMap = publicationEntities.stream()
+                    .collect(groupingBy(CatalogOnlineEntity::getPeriodId, groupingBy(CatalogOnlineEntity::getPublicationCode)));
+            subscriptions.forEach(onlineSubscription -> {
+                Map<String, List<CatalogOnlineEntity>> catalogMap = publicationMap.get(onlineSubscription.getCatalogId());
+                List<CatalogOnlineEntity> publicationEntityList = catalogMap.get(onlineSubscription.getPublicationCode());
+                onlineSubscription.setPublicationName(publicationEntityList.get(0).getTitle());
+                OnlineOrderInfo orderInfo = onlineOrderInfoMap.get(onlineSubscription.getOnlineOrderId());
+                PochtaIdInfo emailPhone = emailPhoneMap.get(orderInfo.getClientHid());
+                List<OrderElement> orderElementList = orderElementsMap.get(orderInfo.getId());
+                final OrderElement[] element = {null};
+                orderElementList.forEach(orderElement -> {
+                    if (orderElement.getUfpsCode().equals(onlineSubscription.getRegionCode().toString())
+                            && orderElement.getPublicationCode().equals(onlineSubscription.getPublicationCode())
+                    ) element[0] = orderElement;
+                });
+                String isDD = element[0].getMarker() != null && element[0].getMarker().equals("KINDNESS_TREE") ? "Да" : "Нет";
+                String deliveryType = "";
+                switch (element[0].getDeliveryType()) {
+                    case 0:
+                        deliveryType = "до адресата";
+                        break;
+                    case 1:
+                        deliveryType = "до a/я";
+                        break;
+                    case 2:
+                        deliveryType = "до востребования";
+                        break;
+                }
+                onlineSubscription.setSubPrice(countSubPrice(onlineSubscription.getMinSubPrice(), onlineSubscription.getAllocation()));
+                String line = generateLineForOnlineMonthReport(onlineSubscription, emailPhone, orderInfo.getClientHid(), deliveryType, isDD);
+                if (line != null) fileData.add(line);
+            });
+            reportService.writeTextToFile(fileData, "reportData.txt");
+            System.out.println("Report data ready");
+        }
+
+    }
+
+    private Double countSubPrice(Double minSubPrice, int[] mspAlloc) {
+        Double sum = Double.valueOf(0);
+        for (Integer alloc : mspAlloc) {
+            sum += alloc * minSubPrice;
+        }
+        return sum;
+    }
+
+    private String generateLineForOnlineMonthReport(OnlineSubscription onlineSubscription, PochtaIdInfo emailPhone, String clientHid, String deliveryType, String isDD) {
+        try {
+            return emailPhone.getFio() + "\t" + emailPhone.getEmail() + "\t" + emailPhone.getPhone() + "\t" + clientHid
+                    + "\t" + onlineSubscription.getFIO() + "\t" + onlineSubscription.getAddress() + "\t" + deliveryType
+                    + "\t" + onlineSubscription.getCreateDate() + "\t" + onlineSubscription.getPublicationName()
+                    + "\t" + onlineSubscription.getPublicationIndex() + "\t" + onlineSubscription.getMinSubsPeriod()
+                    + "\t" + Arrays.toString(onlineSubscription.getAllocation()) + "\t" + onlineSubscription.getMinSubPrice()
+                    + "\t" + onlineSubscription.getSubPrice() + "\t" + isDD;
+        } catch (Exception e) {
+            System.out.println("Some problem");
+        }
+        return null;
     }
 }

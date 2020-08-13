@@ -4,6 +4,8 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.Date;
+
 @AllArgsConstructor
 @Getter
 @Setter
@@ -26,5 +28,8 @@ public class OnlineSubscription {
     private int year;
     private Integer regionBuyCode;
     private String PublicationName;
+    private String address;
+    private String FIO;
+    private Date createDate;
 
 }
