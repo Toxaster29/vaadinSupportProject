@@ -1,9 +1,9 @@
 package com.packagename.myapp.spring.ui.subscription;
 
 import com.packagename.myapp.spring.dto.InsertDao;
-import com.packagename.myapp.spring.entity.schedule.PublisherSchedule;
-import com.packagename.myapp.spring.entity.schedule.PublisherWithContract;
-import com.packagename.myapp.spring.entity.schedule.ScheduleDates;
+import com.packagename.myapp.spring.dto.report.ReportDao;
+import com.packagename.myapp.spring.entity.report.CatalogPeriod;
+import com.packagename.myapp.spring.entity.schedule.*;
 import com.packagename.myapp.spring.service.ExcelParserService;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.Label;
@@ -11,6 +11,7 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.upload.Upload;
 import com.vaadin.flow.component.upload.receivers.MemoryBuffer;
 import com.vaadin.flow.router.Route;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.methods.HttpPut;
@@ -27,11 +28,14 @@ import java.io.PrintWriter;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Route("schedule")
 public class ScheduleView extends VerticalLayout {
 
     private InsertDao insertDao;
+
+    private ReportDao reportDao;
 
     private ExcelParserService excelParserService;
 
@@ -39,9 +43,11 @@ public class ScheduleView extends VerticalLayout {
 
     private int startRow = 3;
 
-    public ScheduleView(@Autowired ExcelParserService excelParserService, @Autowired InsertDao insertDao) {
+    public ScheduleView(@Autowired ExcelParserService excelParserService, @Autowired InsertDao insertDao,
+                        @Autowired ReportDao reportDao) {
         this.excelParserService = excelParserService;
         this.insertDao = insertDao;
+        this.reportDao = reportDao;
         initHeader();
         initUploadLayout();
     }
@@ -67,10 +73,69 @@ public class ScheduleView extends VerticalLayout {
         forAllPublisherButton.addClickListener(click -> {
            createAllSchedules();
         });
-        add(upload, changeDates, forAllPublisherButton);
+        Button withoutScheduleReport = new Button("Without schedule");
+        withoutScheduleReport.addClickListener(click -> {
+            generateWithoutScheduleReport();
+        });
+        Button findAllFederalAndLocalPublishers = new Button("Find publisher by type");
+        findAllFederalAndLocalPublishers.addClickListener(click -> {
+            findAllPublishersByType();
+        });
+        add(upload, changeDates, forAllPublisherButton, withoutScheduleReport, findAllFederalAndLocalPublishers);
+    }
+
+    private void findAllPublishersByType() {
+
+        int year = 2021;
+        int half = 1;
+        List<String> publisherWithSchedule = insertDao.getPublishersWithScheduleByYearAndHalf(year, half);
+        List<String> hidsLocalPublisher = insertDao.getAllLocalPublisher(publisherWithSchedule);
+        writeToFile(StringUtils.join(hidsLocalPublisher, "\n"), "dataFile");
+        System.out.println("ReportReady");
+    }
+
+    private void generateWithoutScheduleReport() {
+
+        int year = 2021;
+        int half = 1;
+        List<CatalogPeriod> catalogPeriods = reportDao.getPeriodList(year, half);
+        List<String> publisherWithSchedule = insertDao.getPublishersWithScheduleByYearAndHalf(year, half);
+        List<String> publisherWithEmptySchedule = insertDao.getPublishersWithEmptyScheduleByYearAndHalf(year, half);
+        String periods = StringUtils.join(catalogPeriods.stream().map(CatalogPeriod::getPeriodId).collect(Collectors.toList()), ",");
+        List<String> publisherWithoutScheduleList = insertDao.getAllWithoutScheduleByPeriod(periods, publisherWithSchedule);
+        List<String> publisherWithEmptyScheduleAndContract = insertDao.getPublisherWithContract(publisherWithEmptySchedule, year, half);
+        List<ScheduleWithoutEntity> scheduleWithoutEntities = new ArrayList<>();
+        publisherWithoutScheduleList.forEach(hid -> {
+            scheduleWithoutEntities.add(createReportEntityWithComment("Не создано расписание", hid, year, half, periods));
+        });
+        publisherWithEmptyScheduleAndContract.forEach(hid -> {
+            scheduleWithoutEntities.add(createReportEntityWithComment("Расписание создано но не привязано к договору", hid, year, half, periods));
+        });
+        List<String> fileData = generateReportDataWithoutSchedulers(scheduleWithoutEntities);
+        writeToFile(StringUtils.join(fileData, "\n"), "dataFile");
+        System.out.println("ReportReady");
+
+    }
+
+    private List<String> generateReportDataWithoutSchedulers(List<ScheduleWithoutEntity> scheduleWithoutEntities) {
+        List<String> lines = new ArrayList<>();
+        scheduleWithoutEntities.forEach(entity -> {
+            lines.add(entity.getHalf() + "\t" + entity.getContragentName() + "\t" + entity.getLegalHid() + "\t"
+                    + entity.getIndexes() + "\t" + entity.getManager() + "\t" + entity.getComment());
+        });
+        return lines;
+    }
+
+    private ScheduleWithoutEntity createReportEntityWithComment(String comment, String hid, int year, int half, String periods) {
+        PublisherData publisherData = insertDao.getPublisherDataByHid(hid);
+        List<String> indexes = insertDao.getAllIndexForPublisherByHid(hid, periods);
+        String indexesLine = StringUtils.join(indexes, ",");
+        return new ScheduleWithoutEntity(year + "-" + half, publisherData.getName(), publisherData.getHid(),
+                indexesLine, publisherData.getManagerHid(), comment);
     }
 
     private void createAllSchedules() {
+
         List<String> publisherWithSchedule = insertDao.getPublishersWithSchedule();
         List<PublisherWithContract> publisherWithContracts = insertDao.getAllPublisherByYearAndHalf(publisherWithSchedule);
         publisherWithContracts.forEach(insertDao::setContractIdForPublisher);
@@ -107,7 +172,7 @@ public class ScheduleView extends VerticalLayout {
     private void writeToFile(String text, String fileName) {
         PrintWriter pw = null;
         try {
-            pw = new PrintWriter(new FileWriter(String.format("C:\\Users\\assze\\Desktop\\%s.txt", fileName)));
+            pw = new PrintWriter(new FileWriter(String.format("C:\\Users\\Антон\\Desktop\\%s.txt", fileName)));
             pw.write(text);
             pw.close();
         } catch (Exception e) {

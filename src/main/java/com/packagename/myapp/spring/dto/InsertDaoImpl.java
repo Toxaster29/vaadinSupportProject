@@ -1,8 +1,10 @@
 package com.packagename.myapp.spring.dto;
 
+import com.packagename.myapp.spring.entity.schedule.PublisherData;
 import com.packagename.myapp.spring.entity.schedule.PublisherWithContract;
 import com.packagename.myapp.spring.entity.subscription.Subscription;
 import com.packagename.myapp.spring.entity.treatment.TreatmentEntity;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Repository;
 
 import java.sql.*;
@@ -15,21 +17,34 @@ public class InsertDaoImpl implements InsertDao {
     private static String contractUrl = "jdbc:postgresql://localhost:5432/contract";
     private static String urlCatalog = "jdbc:postgresql://localhost:5432/catalogue-service";
     private static String urlSub = "jdbc:postgresql://localhost:5432/sub_subscription_service";
-    private static String tictacUrl = "jdbc:postgresql://localhost:5432/subs_tictac";
+    private static String tictacUrl = "jdbc:postgresql://localhost:5432/tic_tac";
+    private static String partnersUrl = "jdbc:postgresql://localhost:5432/partners";
     private static String user = "postgres";
     private static String passwd = "123";
 
-    private static String GET_ALL_PUBLISHERS = "SELECT distinct legal_hid FROM public.subscription_element where catalogue_for_period_id in (271,270)";
+    private static String GET_ALL_PUBLISHERS = "SELECT distinct legal_hid FROM public.subscription_element where catalogue_for_period_id in (277,276)";
 
-    private static String GET_CONTRACT_IF_FOR_PUBLISHER = "SELECT * FROM public.contract where legal_hid = '%s'\n" +
-            "and \"year\" = 2020 and half = 2 and doc_type = 'DELIVERY' and status = 'ACTIVE'";
+    private static String GET_ALL_PUBLISHERS_BY_PERIODS =
+            "SELECT distinct legal_hid FROM public.subscription_element where catalogue_for_period_id in (%s) and status = 'APPROVED'";
+
+    private static String GET_CONTRACT_IF_FOR_PUBLISHER_OLD = "SELECT legal_hid FROM public.contract where legal_hid = '%s' \n" +
+            "and \"year\" = %s and half = %s and doc_type = 'DELIVERY' and status = 'ACTIVE'";
+
+    private static String GET_CONTRACT_IF_FOR_PUBLISHER = "SELECT legal_hid FROM public.contract where legal_hid in (%s)\n" +
+            "and \"year\" = %s and half = %s and doc_type = 'DELIVERY' and status = 'ACTIVE'";
 
     private static String GET_IS_LOCAL_PARAMETER = "SELECT pi.place,pi.is_local FROM public.subscription_element se\n" +
             "join publication_info pi on se.id = pi.id\n" +
-            "where se.catalogue_for_period_id in (271,270)\n" +
+            "where se.catalogue_for_period_id in (277,276)\n" +
             "and se.legal_hid = '%s'";
 
-    private static String GET_PUBLISHERS_WITH_SCHEDULE = "SELECT distinct publisher_id FROM public.contract_schedule where \"year\" = 2020 and half_year = 2";
+    private static String GET_PUBLISHERS_WITH_SCHEDULE = "SELECT distinct publisher_id FROM public.contract_schedule where \"year\" = 2021 and half_year = 1";
+
+    private static String GET_PUBLISHERS_WITH_SCHEDULE_BY_YEAR_AND_HALF =
+            "SELECT distinct publisher_id FROM public.contract_schedule where \"year\" = %s and half_year = %s";
+
+    private static String GET_PUBLISHERS_WITH_EMPTY_SCHEDULE_BY_YEAR_AND_HALF =
+            "SELECT distinct publisher_id FROM public.contract_schedule where \"year\" = %s and half_year = %s and contract_id = '-'";
 
     private static String GET_SP5_FOR_ANNULMENT = "select s.sp5_number FROM public.subscriptions s\n" +
             "join bookings b on b.booking_id = s.booking_id\n" +
@@ -42,6 +57,11 @@ public class InsertDaoImpl implements InsertDao {
             "join addresses a on a.address_id = s.address_id\n" +
             "where s.publisher_id = '16e1ba3e-bb9a-4b9d-bd38-013a5797f200' and s.catalogue_id in ('255', '254', '261', '256', '262', '265', '183', '253', '184') and b.source_type = 2\n" +
             "and s.wagon = %s and s.place = %s %s";
+
+    private static String GET_ALL_PUBLICATION_CODE_FOR_PUBLISHER =
+            "SELECT publication_code FROM public.subscription_element where catalogue_for_period_id in (%s) and status = 'APPROVED' and legal_hid = '%s'";
+
+    private static String GET_PUBLISHER_DATA = "SELECT legal_hid, \"name\", manager FROM public.publisher where legal_hid = '%s'";
 
     @Override
     public List<PublisherWithContract> getAllPublisherByYearAndHalf(List<String> publisherWithSchedule) {
@@ -63,8 +83,10 @@ public class InsertDaoImpl implements InsertDao {
 
     @Override
     public void setContractIdForPublisher(PublisherWithContract publisher) {
+        int year = 2021;
+        int half = 1;
         try (Connection con = DriverManager.getConnection(contractUrl, user, passwd);
-             PreparedStatement pst = con.prepareStatement(String.format(GET_CONTRACT_IF_FOR_PUBLISHER, publisher.getHid()));
+             PreparedStatement pst = con.prepareStatement(String.format(GET_CONTRACT_IF_FOR_PUBLISHER_OLD, publisher.getHid(), year, half));
              ResultSet rs = pst.executeQuery()) {
             while (rs.next()) {
                 publisher.setContractId(rs.getInt(1));
@@ -139,5 +161,125 @@ public class InsertDaoImpl implements InsertDao {
                 System.err.println(ex.getMessage());
         }
         return subscriptions;
+    }
+
+    @Override
+    public List<String> getPublishersWithScheduleByYearAndHalf(int year, int half) {
+        List<String> publisherHids = new ArrayList<>();
+        try (Connection con = DriverManager.getConnection(tictacUrl, user, passwd);
+             PreparedStatement pst = con.prepareStatement(String.format(GET_PUBLISHERS_WITH_SCHEDULE_BY_YEAR_AND_HALF, year, half));
+             ResultSet rs = pst.executeQuery()) {
+            while (rs.next()) {
+                publisherHids.add(rs.getString(1));
+            }
+        } catch (SQLException ex) {
+            System.err.println(ex.getMessage());
+        }
+        return publisherHids;
+    }
+
+    @Override
+    public List<String> getAllWithoutScheduleByPeriod(String periods, List<String> publisherWithSchedule) {
+        List<String> publisherHids = new ArrayList<>();
+        try (Connection con = DriverManager.getConnection(urlCatalog, user, passwd);
+             PreparedStatement pst = con.prepareStatement(String.format(GET_ALL_PUBLISHERS_BY_PERIODS, periods));
+             ResultSet rs = pst.executeQuery()) {
+            while (rs.next()) {
+                String hid = rs.getString(1);
+                if (publisherWithSchedule.stream().noneMatch(id -> id.equals(hid))) {
+                    publisherHids.add(hid);
+                }
+            }
+        } catch (SQLException ex) {
+            System.err.println(ex.getMessage());
+        }
+        return publisherHids;
+    }
+
+    @Override
+    public List<String> getPublishersWithEmptyScheduleByYearAndHalf(int year, int half) {
+        List<String> publisherHids = new ArrayList<>();
+        try (Connection con = DriverManager.getConnection(tictacUrl, user, passwd);
+             PreparedStatement pst = con.prepareStatement(String.format(GET_PUBLISHERS_WITH_EMPTY_SCHEDULE_BY_YEAR_AND_HALF, year, half));
+             ResultSet rs = pst.executeQuery()) {
+            while (rs.next()) {
+                publisherHids.add(rs.getString(1));
+            }
+        } catch (SQLException ex) {
+            System.err.println(ex.getMessage());
+        }
+        return publisherHids;
+    }
+
+    @Override
+    public List<String> getPublisherWithContract(List<String> publisherWithEmptySchedule, int year, int half) {
+        List<String> hids = new ArrayList<>();
+        List<String> hidsForQuery = new ArrayList<>();
+        publisherWithEmptySchedule.forEach(hid -> hidsForQuery.add("\'" + hid + "\'"));
+        String hidsLine = StringUtils.join(hidsForQuery,",");
+        try (Connection con = DriverManager.getConnection(contractUrl, user, passwd);
+             PreparedStatement pst = con.prepareStatement(String.format(GET_CONTRACT_IF_FOR_PUBLISHER, hidsLine, year, half));
+             ResultSet rs = pst.executeQuery()) {
+            while (rs.next()) {
+                hids.add(rs.getString(1));
+            }
+        } catch (SQLException ex) {
+            System.err.println(ex.getMessage());
+        }
+        return hids;
+    }
+
+    @Override
+    public PublisherData getPublisherDataByHid(String hid) {
+        PublisherData publisherData = new PublisherData();
+        try (Connection con = DriverManager.getConnection(partnersUrl, user, passwd);
+             PreparedStatement pst = con.prepareStatement(String.format(GET_PUBLISHER_DATA, hid));
+             ResultSet rs = pst.executeQuery()) {
+            while (rs.next()) {
+                publisherData.setHid(rs.getString(1));
+                publisherData.setName(rs.getString(2));
+                publisherData.setManagerHid(rs.getString(3));
+            }
+        } catch (SQLException ex) {
+            System.err.println(ex.getMessage());
+        }
+        return publisherData;
+    }
+
+    @Override
+    public List<String> getAllIndexForPublisherByHid(String hid, String periods) {
+        List<String> indexes = new ArrayList<>();
+        try (Connection con = DriverManager.getConnection(urlCatalog, user, passwd);
+             PreparedStatement pst = con.prepareStatement(String.format(GET_ALL_PUBLICATION_CODE_FOR_PUBLISHER, periods, hid));
+             ResultSet rs = pst.executeQuery()) {
+            while (rs.next()) {
+                indexes.add(rs.getString(1));
+            }
+        } catch (SQLException ex) {
+            System.err.println(ex.getMessage());
+        }
+        return indexes;
+    }
+
+    @Override
+    public List<String> getAllLocalPublisher(List<String> publisherWithSchedule) {
+        List<String> hidsForQuery = new ArrayList<>();
+        for (String hid : publisherWithSchedule) {
+            boolean isLocal = true;
+            try (Connection con = DriverManager.getConnection(urlCatalog, user, passwd);
+                 PreparedStatement pst = con.prepareStatement(String.format(GET_IS_LOCAL_PARAMETER, hid));
+                 ResultSet rs = pst.executeQuery()) {
+                while (rs.next()) {
+                    if (rs.getString(1).equals("FEDERAL") || !rs.getBoolean(2)) {
+                        isLocal = false;
+                        break;
+                    }
+                }
+            } catch (SQLException ex) {
+                System.err.println(ex.getMessage());
+            }
+            if(!isLocal) hidsForQuery.add(hid);
+        }
+        return hidsForQuery;
     }
 }
