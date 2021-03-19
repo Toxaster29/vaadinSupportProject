@@ -108,6 +108,32 @@ public class OnlineReportDaoImpl implements OnlineReportDao {
     }
 
     @Override
+    public List<OnlineSubscription> getAllSubscriptionByPeriodsWithEndDate(String period, int year, boolean equals, String endDate) {
+        List<OnlineSubscription> subscriptions = new ArrayList<>();
+        String sql = "SELECT s.subscription_id,b.region_code,s.publisher_id,s.publication_code,s.\"index\",s.catalogue_id,s.min_subs_period,s.min_subs_price,\n" +
+                "alloc_jan,alloc_feb,alloc_mar,alloc_apr,alloc_may,alloc_jun,alloc_jul,alloc_aug,alloc_sep,alloc_oct,alloc_nov,alloc_dec,s.alloc_by_msp, b.online_order_id\n" +
+                "FROM public.subscriptions s\n" +
+                "join bookings  b on b.booking_id = s.booking_id\n" +
+                "where state in (2,4) and %s and s.catalogue_id in (%s) and s.created_date < '%s'";
+        try (Connection con = DriverManager.getConnection(urlSub, user, passwd);
+             PreparedStatement pst = con.prepareStatement(String.format(sql, equals ? "b.online" : "b.source_type = 0", period, endDate));
+             ResultSet rs = pst.executeQuery()) {
+            while (rs.next()) {
+                subscriptions.add(new OnlineSubscription(rs.getInt(1), rs.getInt(2), rs.getString(3),
+                        rs.getString(4), rs.getString(5), rs.getInt(6), rs.getInt(7),
+                        rs.getDouble(8), new int[]{rs.getInt(9), rs.getInt(10), rs.getInt(11),
+                        rs.getInt(12), rs.getInt(13), rs.getInt(14), rs.getInt(15),
+                        rs.getInt(16), rs.getInt(17), rs.getInt(18), rs.getInt(19),
+                        rs.getInt(20)}, getAllocationsFromString(rs.getString(21)), rs.getInt(22),
+                        null, null, null, year, null, null, null, null, null));
+            }
+        } catch (SQLException ex) {
+            System.err.println(ex.getMessage());
+        }
+        return subscriptions;
+    }
+
+    @Override
     public List<OnlineSubscription> getOnlineSubsByTime(String startDate, String endDate) {
         List<OnlineSubscription> subscriptions = new ArrayList<>();
         String sql = "SELECT s.subscription_id,b.region_code,s.publisher_id,s.publication_code,s.\"index\",s.catalogue_id,s.min_subs_period,s.min_subs_price,\n" +

@@ -20,6 +20,8 @@ public interface OnlineReportDao {
 
     List<OnlineSubscription> getAllSubscriptionByPeriods(String period, int year, boolean equals);
 
+    List<OnlineSubscription> getAllSubscriptionByPeriodsWithEndDate(String period, int year, boolean equals, String endDate);
+
     List<OnlineSubscription> getOnlineSubsByTime(String startDate, String endDate);
 
     List<OrderElement> getOnlineOrderElements(Set<Integer> orderIdSet);

@@ -32,14 +32,20 @@ public class OnlineReportService {
     private ResourceService resourceService;
 
     public void createReportByDate(String value) {
+        Integer year1 = 2019;
+        Integer year2 = 2020;
+        Integer halfYear = 2;
+        String endDate1 = "2020-03-01 23:59:59";
+        String endDate2 = "2021-03-01 23:59:59";
+
         Map<Integer, String> macroRegionMap = resourceService.getMacroRegionEntityMap();
         List<UfpsEntity> ufpsEntities = resourceService.getUfpsEntityList();
         Map<Integer, UfpsEntity> ufpsMap = ufpsEntities.stream().collect(Collectors.toMap(UfpsEntity::getIntId, Function.identity()));
-        List<OnlineSubscription> subscriptions = prepareOnlineSubs(value.equals(""));
+        List<OnlineSubscription> subscriptions = prepareOnlineSubs(true, year1, year2, halfYear, endDate1, endDate2);
         Map<String, List<OnlineSubscription>> subscriptionMap = subscriptions.stream().collect(groupingBy(OnlineSubscription::getPostalCode));
         List<String> dataToFile = new ArrayList<>();
         for (Map.Entry<String, List<OnlineSubscription>> entry : subscriptionMap.entrySet()) {
-            OnlineOrderEntity2019And2020 onlineEntity = getEntityForOnlineReport(entry.getValue());
+            OnlineOrderEntity2019And2020 onlineEntity = getEntityForOnlineReport(entry.getValue(), year1, year2);
             dataToFile.add(generateLine(entry.getKey(), onlineEntity.getRegionId(), onlineEntity.getCount2019(),
                     onlineEntity.getOrderCount2019(), onlineEntity.getTotalPrice2019(),
                     onlineEntity.getCount2020(), onlineEntity.getOrderCount2020(), onlineEntity.getTotalPrice2020(), macroRegionMap, ufpsMap));
@@ -48,10 +54,10 @@ public class OnlineReportService {
         System.out.println("Yeah");
     }
 
-    private OnlineOrderEntity2019And2020 getEntityForOnlineReport(List<OnlineSubscription> value) {
-        Set<Integer> orderIdSet2019 = new LinkedHashSet<>(value.stream().filter(onlineSubscription -> onlineSubscription.getYear() == 2019)
+    private OnlineOrderEntity2019And2020 getEntityForOnlineReport(List<OnlineSubscription> value, Integer year1, Integer year2) {
+        Set<Integer> orderIdSet2019 = new LinkedHashSet<>(value.stream().filter(onlineSubscription -> onlineSubscription.getYear() == year1)
                 .map(OnlineSubscription::getOnlineOrderId).collect(Collectors.toList()));
-        Set<Integer> orderIdSet2020 = new LinkedHashSet<>(value.stream().filter(onlineSubscription -> onlineSubscription.getYear() == 2020)
+        Set<Integer> orderIdSet2020 = new LinkedHashSet<>(value.stream().filter(onlineSubscription -> onlineSubscription.getYear() == year2)
                 .map(OnlineSubscription::getOnlineOrderId).collect(Collectors.toList()));
         final Integer[] totalCount2019 = {0};
         final Double[] totalPrice2019 = {Double.valueOf(0)};
@@ -62,7 +68,7 @@ public class OnlineReportService {
         final Integer[] regionId = {null};
         value.forEach(onlineSubscription -> {
             if (regionId[0] == null) regionId[0] = onlineSubscription.getRegionCode();
-            if (onlineSubscription.getYear() == 2019) {
+            if (onlineSubscription.getYear() == year1) {
                 if (onlineSubscription.getCount() != null) {
                     totalCount2019[0] += onlineSubscription.getCount();
                     totalPrice2019[0] += onlineSubscription.getSubPrice();
@@ -78,26 +84,34 @@ public class OnlineReportService {
                 totalPrice2019[0], totalPrice2020[0], regionId[0]);
     }
 
-    private List<OnlineSubscription> prepareOnlineSubs(boolean equals) {
-        List<CatalogPeriod> catalogPeriods = onlineReportDao.getPeriodList("year in (2019,2020)");
+    private List<OnlineSubscription> prepareOnlineSubs(boolean equals, Integer year1, Integer year2, Integer halfYear,
+                                                       String endDate1, String endDate2) {
+        List<CatalogPeriod> catalogPeriods = onlineReportDao
+                .getPeriodList(year2 != null ? "year in (" + year1 + "," + year2 + ")" :"year in ("+ year1 +")");
         String periods = StringUtils.join(catalogPeriods.stream().map(CatalogPeriod::getPeriodId).collect(Collectors.toList()), ",");
         List<CatalogPublicationEntity> publicationEntities = reportDao.getCatalogPublicationInfo(periods);
         Map<Integer, Map<String, List<CatalogPublicationEntity>>> publicationMap = publicationEntities.stream()
                 .collect(groupingBy(CatalogPublicationEntity::getPeriodId, groupingBy(CatalogPublicationEntity::getPublicationCode)));
-        String startDate2019 = "2019-01-01 00:00:01";
-        String endDate2019 = "2019-04-20 23:59:59";
-        String startDate2020 = "2020-01-01 00:00:01";
-        String endDate2020 = "2020-04-20 23:59:59";
 
-        List<OnlineSubscription> subscriptions = onlineReportDao.getAllSubscriptionByPeriods("266, 264, 269, 268, 272, 263, 267", 2020, equals);
+        List<CatalogPeriod> period1 = reportDao.getPeriodList(year1, halfYear);
+        String per1 = StringUtils.join(period1.stream().map(CatalogPeriod::getPeriodId).collect(Collectors.toList()), ",");
 
-        //List<OnlineSubscription> subscriptions = onlineReportDao.getAllSubscriptionByPeriods("173, 220, 185, 186, 180, 179, 172, 219", 2019);
-        //subscriptions.addAll(onlineReportDao.getAllSubscriptionByPeriods("266, 264, 269, 268, 272, 263, 267", 2020));
+        List<CatalogPeriod> period2 = reportDao.getPeriodList(year2, halfYear);
+        String per2 = StringUtils.join(period2.stream().map(CatalogPeriod::getPeriodId).collect(Collectors.toList()), ",");
 
-        //Если необходимо ограничение по дате заказов
+        List<OnlineSubscription> subscriptions = new ArrayList<>();
 
-        //List<OnlineSubscription> subscriptions = onlineReportDao.getAllSubscriptionByDate(startDate2019, endDate2019, 2019);
-        //subscriptions.addAll(onlineReportDao.getAllSubscriptionByDate(startDate2020, endDate2020, 2020));
+        if (year2 == null) {
+            subscriptions.addAll(onlineReportDao.getAllSubscriptionByPeriods(per1, year1, equals));
+        } else {
+            if (endDate1 != null && endDate2 != null) {
+                subscriptions.addAll(onlineReportDao.getAllSubscriptionByPeriodsWithEndDate(per1, year1, equals, endDate1));
+                subscriptions.addAll(onlineReportDao.getAllSubscriptionByPeriodsWithEndDate(per2, year2, equals, endDate2));
+            } else {
+                subscriptions.addAll(onlineReportDao.getAllSubscriptionByPeriods(per1, year1, equals));
+                subscriptions.addAll(onlineReportDao.getAllSubscriptionByPeriods(per2, year2, equals));
+            }
+        }
 
         subscriptions.forEach(onlineSubscription -> {
             Map<String, List<CatalogPublicationEntity>> catalogPublications = publicationMap.get(onlineSubscription.getCatalogId());
@@ -136,11 +150,20 @@ public class OnlineReportService {
     }
 
     public void createReportWithBuyRegion(String value) {
-        List<OnlineSubscription> subscriptions = prepareOnlineSubs(value.equals(""));
-        Set<Integer> orderIdSet = new LinkedHashSet<>(subscriptions.stream().map(OnlineSubscription::getOnlineOrderId).collect(Collectors.toList()));
+        Integer year1 = 2020;
+        Integer year2 = 2021;
+        Integer halfYear = 1;
+        String endDate1 = "2020-03-01 23:59:59";
+        String endDate2 = "2021-03-01 23:59:59";
+
+        System.out.println("Start ReportWithBuyRegion");
+
+        List<OnlineSubscription> subscriptions = prepareOnlineSubs(true, year1, year2, halfYear, endDate1, endDate2);
+        Set<Integer> orderIdSet = new LinkedHashSet<>(subscriptions.stream().map(OnlineSubscription::getOnlineOrderId)
+                .collect(Collectors.toList()));
         List<OnlineOrderInfo> orderInfoList = onlineReportDao.getOnlineOrderInfo(orderIdSet);
         if (value.equals("")) {
-            List<String> fileData = new ArrayList<>();
+            Set<String> fileData = new HashSet<>();
             orderInfoList.forEach(info -> {
                 fileData.add(info.getClientHid());
             });
@@ -167,13 +190,14 @@ public class OnlineReportService {
                 orderInfoMap.put(info.getId(), info);
             });
             subscriptions.forEach(onlineSubscription -> {
-                onlineSubscription.setRegionBuyCode(orderInfoMap.get(onlineSubscription.getOnlineOrderId()).getRegionId());
+                onlineSubscription.setRegionBuyCode(orderInfoMap.get(onlineSubscription.getOnlineOrderId()) != null ?
+                        orderInfoMap.get(onlineSubscription.getOnlineOrderId()).getRegionId() : 0);
             });
             Map<Integer, List<OnlineSubscription>> onlineSubscriptionMap = subscriptions.stream()
                     .collect(groupingBy(OnlineSubscription::getRegionBuyCode));
             List<String> dataToFile = new ArrayList<>();
             for (Map.Entry<Integer, List<OnlineSubscription>> entry : onlineSubscriptionMap.entrySet()) {
-                OnlineOrderEntity2019And2020 onlineEntity = getEntityForOnlineReport(entry.getValue());
+                OnlineOrderEntity2019And2020 onlineEntity = getEntityForOnlineReport(entry.getValue(), year1, year2);
                 dataToFile.add(generateLineForRegionBuy(entry.getKey() == 0 ? "Н/д" : ufpsMap.get(entry.getKey()).getDescription(),
                         entry.getKey() == 0 ? "Н/д" : macroRegionEntityMap.get(entry.getKey()),
                         onlineEntity.getCount2019(), onlineEntity.getOrderCount2019(), onlineEntity.getTotalPrice2019(),
@@ -202,7 +226,11 @@ public class OnlineReportService {
     }
 
     public void createReportOnlineTopPublications(String value) {
-        List<OnlineSubscription> subscriptions = prepareOnlineSubs(value.equals(""));
+        Integer year1 = 2020;
+        Integer year2 = null; //для одного года
+        Integer halfYear = 2;
+
+        List<OnlineSubscription> subscriptions = prepareOnlineSubs(value.equals(""), year1, year2, halfYear, null, null);
         Map<String, List<OnlineSubscription>> onlineSubscriptionMap = subscriptions.stream()
                 .collect(groupingBy(OnlineSubscription::getPublicationIndex));
         List<TopPopularIndex> topPopularIndices = new ArrayList<>();
@@ -211,7 +239,7 @@ public class OnlineReportService {
         }
         Collections.sort(topPopularIndices, Collections.reverseOrder());
         List<String> dataToFile = new ArrayList<>();
-        for (int i = 0; i < 500; i++) {
+        for (int i = 0; i < 1500; i++) {
             dataToFile.add(topPopularIndices.get(i).toString());
         }
         reportService.writeTextToFile(dataToFile, "ReportData");
@@ -313,5 +341,30 @@ public class OnlineReportService {
             System.out.println("Some problem");
         }
         return null;
+    }
+
+    public void createOnlineReportByRegionReceiving(String value) {
+        Integer year1 = 2020;
+        Integer year2 = 2021;
+        Integer halfYear = 1;
+        String endDate1 = "2020-03-01 23:59:59";
+        String endDate2 = "2021-03-01 23:59:59";
+        /*String endDate1 = null;
+        String endDate2 = null;*/
+
+        Map<Integer, String> macroRegionMap = resourceService.getMacroRegionEntityMap();
+        List<UfpsEntity> ufpsEntities = resourceService.getUfpsEntityList();
+        Map<Integer, UfpsEntity> ufpsMap = ufpsEntities.stream().collect(Collectors.toMap(UfpsEntity::getIntId, Function.identity()));
+        List<OnlineSubscription> subscriptions = prepareOnlineSubs(true, year1, year2, halfYear, endDate1, endDate2);
+        Map<Integer, List<OnlineSubscription>> subscriptionMap = subscriptions.stream().collect(groupingBy(OnlineSubscription::getRegionCode));
+        List<String> dataToFile = new ArrayList<>();
+        for (Map.Entry<Integer, List<OnlineSubscription>> entry : subscriptionMap.entrySet()) {
+            OnlineOrderEntity2019And2020 onlineEntity = getEntityForOnlineReport(entry.getValue(), year1, year2);
+            dataToFile.add(generateLineForRegionBuy(ufpsMap.get(entry.getKey()).getDescription(), macroRegionMap.get(entry.getKey()),
+                    onlineEntity.getCount2019(), onlineEntity.getOrderCount2019(), onlineEntity.getTotalPrice2019(),
+                    onlineEntity.getCount2020(), onlineEntity.getOrderCount2020(), onlineEntity.getTotalPrice2020()));
+        }
+        reportService.writeTextToFile(dataToFile, "ReportData.txt");
+        System.out.println("Yeah");
     }
 }
