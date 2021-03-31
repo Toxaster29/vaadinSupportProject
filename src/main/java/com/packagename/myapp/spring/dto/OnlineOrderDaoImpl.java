@@ -10,7 +10,7 @@ import java.util.List;
 @Repository
 public class OnlineOrderDaoImpl implements OnlineOrderDao {
 
-    private static String subsContextUrl = "jdbc:postgresql://localhost:5432/context";
+    private static String subsContextUrl = "jdbc:postgresql://localhost:5432/subscontext";
     private static String user = "postgres";
     private static String passwd = "123";
 
