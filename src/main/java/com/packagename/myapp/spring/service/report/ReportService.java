@@ -261,7 +261,7 @@ public class ReportService {
     public void writeTextToFile(Collection<String> dataToFile, String fileName) {
         PrintWriter pw = null;
         try {
-            pw = new PrintWriter(new FileWriter("C:\\Users\\Антон\\Desktop\\" + fileName));
+            pw = new PrintWriter(new FileWriter("C:\\Users\\assze\\Desktop\\" + fileName));
             for (String line : dataToFile) {
                 pw.write(line + "\n");
             }

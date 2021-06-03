@@ -1,14 +1,11 @@
 package com.packagename.myapp.spring.dto.report;
 
 import com.packagename.myapp.spring.entity.report.CatalogPeriod;
-import com.packagename.myapp.spring.entity.report.CatalogPublicationEntity;
-import com.packagename.myapp.spring.entity.report.PlaceType;
 import com.packagename.myapp.spring.entity.report.online.CatalogOnlineEntity;
 import com.packagename.myapp.spring.entity.report.online.OnlineOrderInfo;
 import com.packagename.myapp.spring.entity.report.online.OnlineSubscription;
 import com.packagename.myapp.spring.entity.report.online.OrderElement;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Repository;
 
 import java.sql.*;

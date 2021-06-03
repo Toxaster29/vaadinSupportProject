@@ -7,7 +7,9 @@ import com.packagename.myapp.spring.entity.schedule.*;
 import com.packagename.myapp.spring.service.ExcelParserService;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.Label;
+import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.component.upload.Upload;
 import com.vaadin.flow.component.upload.receivers.MemoryBuffer;
 import com.vaadin.flow.router.Route;
@@ -50,6 +52,22 @@ public class ScheduleView extends VerticalLayout {
         this.reportDao = reportDao;
         initHeader();
         initUploadLayout();
+        initSomeChangeDateLayout();
+    }
+
+    private void initSomeChangeDateLayout() {
+        TextField generateDateField = new TextField("Generate documents");
+        TextField ufpsDateField = new TextField("Ufps");
+        Button forAllMonth = new Button("Generate for all months");
+        forAllMonth.addClickListener(click -> {
+           changeAllMonthByData(generateDateField.getValue(), ufpsDateField.getValue());
+        });
+        HorizontalLayout changeDateLayout = new HorizontalLayout(generateDateField, ufpsDateField, forAllMonth);
+        add(changeDateLayout);
+    }
+
+    private void changeAllMonthByData(String generateDateValue, String ufpsDateValue) {
+
     }
 
     private void initUploadLayout() {

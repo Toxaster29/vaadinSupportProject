@@ -2,7 +2,6 @@ package com.packagename.myapp.spring.service.report;
 
 import com.packagename.myapp.spring.dto.report.OnlineReportDao;
 import com.packagename.myapp.spring.dto.report.ReportDao;
-import com.packagename.myapp.spring.entity.insert.EmailPhone;
 import com.packagename.myapp.spring.entity.report.CatalogPeriod;
 import com.packagename.myapp.spring.entity.report.CatalogPublicationEntity;
 import com.packagename.myapp.spring.entity.report.online.*;
@@ -10,7 +9,6 @@ import com.packagename.myapp.spring.entity.ufps.UfpsEntity;
 import com.packagename.myapp.spring.service.ResourceService;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -32,11 +30,13 @@ public class OnlineReportService {
     private ResourceService resourceService;
 
     public void createReportByDate(String value) {
-        Integer year1 = 2019;
-        Integer year2 = 2020;
-        Integer halfYear = 2;
-        String endDate1 = "2020-03-01 23:59:59";
-        String endDate2 = "2021-03-01 23:59:59";
+        Integer year1 = 2020;
+        Integer year2 = 2021;
+        Integer halfYear = 1;
+        /*String endDate1 = "2020-03-01 23:59:59";
+        String endDate2 = "2021-03-01 23:59:59";*/
+        String endDate1 = null;
+        String endDate2 = null;
 
         Map<Integer, String> macroRegionMap = resourceService.getMacroRegionEntityMap();
         List<UfpsEntity> ufpsEntities = resourceService.getUfpsEntityList();
@@ -137,12 +137,6 @@ public class OnlineReportService {
         return subscriptions;
     }
 
-    private int[] getAllocationsFromString(String string) {
-        String out = string.substring(1, string.length() - 1);
-        String[] alloc = out.split(",");
-        return  Arrays.asList(alloc).stream().mapToInt(Integer::parseInt).toArray();
-    }
-
     private String generateLine(String entryKey, Integer key, Integer totalCount, Integer orderCount, Double totalPrice,
                                 Integer integer, Integer orderCount2020, Double aDouble, Map<Integer, String> macroRegionMap, Map<Integer, UfpsEntity> ufpsMap) {
         return  ufpsMap.get(key).getDescription() + "\t" + entryKey + "\t" + macroRegionMap.get(key) + "\t" + totalCount + "\t" + orderCount + "\t" + totalPrice
@@ -150,11 +144,13 @@ public class OnlineReportService {
     }
 
     public void createReportWithBuyRegion(String value) {
-        Integer year1 = 2020;
-        Integer year2 = 2021;
-        Integer halfYear = 1;
-        String endDate1 = "2020-03-01 23:59:59";
-        String endDate2 = "2021-03-01 23:59:59";
+        Integer year1 = 2019;
+        Integer year2 = 2020;
+        Integer halfYear = 2;
+        /*String endDate1 = "2020-06-01 00:00:01";
+        String endDate2 = "2021-06-01 00:00:01";*/
+        String endDate1 = null;
+        String endDate2 = null;
 
         System.out.println("Start ReportWithBuyRegion");
 
@@ -226,11 +222,10 @@ public class OnlineReportService {
     }
 
     public void createReportOnlineTopPublications(String value) {
-        Integer year1 = 2020;
-        Integer year2 = null; //для одного года
-        Integer halfYear = 2;
+        Integer year1 = 2021;
+        Integer halfYear = 1;
 
-        List<OnlineSubscription> subscriptions = prepareOnlineSubs(value.equals(""), year1, year2, halfYear, null, null);
+        List<OnlineSubscription> subscriptions = prepareOnlineSubs(value.equals(""), year1, null, halfYear, null, null);
         Map<String, List<OnlineSubscription>> onlineSubscriptionMap = subscriptions.stream()
                 .collect(groupingBy(OnlineSubscription::getPublicationIndex));
         List<TopPopularIndex> topPopularIndices = new ArrayList<>();
@@ -242,7 +237,7 @@ public class OnlineReportService {
         for (int i = 0; i < 1500; i++) {
             dataToFile.add(topPopularIndices.get(i).toString());
         }
-        reportService.writeTextToFile(dataToFile, "ReportData");
+        reportService.writeTextToFile(dataToFile, "ReportData.txt");
         System.out.println("Top");
     }
 
@@ -346,9 +341,9 @@ public class OnlineReportService {
     public void createOnlineReportByRegionReceiving(String value) {
         Integer year1 = 2020;
         Integer year2 = 2021;
-        Integer halfYear = 1;
-        String endDate1 = "2020-03-01 23:59:59";
-        String endDate2 = "2021-03-01 23:59:59";
+        Integer halfYear = 2;
+        String endDate1 = "2020-06-01 00:00:01";
+        String endDate2 = "2021-06-01 00:00:01";
         /*String endDate1 = null;
         String endDate2 = null;*/
 
