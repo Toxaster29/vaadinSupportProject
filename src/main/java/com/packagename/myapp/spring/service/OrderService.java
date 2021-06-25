@@ -22,7 +22,7 @@ public class OrderService {
         Map<String, List<OnlineOrder>> orderMap = onlineOrderDao.getAllOnlineOrders().stream()
                 .collect(Collectors.groupingBy(OnlineOrder::getHid));
         orderMap.entrySet().forEach(hid -> {
-            if (hid.getValue().stream().allMatch(order -> order.getCreateDate().isAfter(LocalDateTime.of(2020, 12, 1, 0,0,0)))) {
+            if (hid.getValue().stream().allMatch(order -> order.getCreateDate().isAfter(LocalDateTime.of(2021, 3, 25, 0,0,0)))) {
                 newHids.add(hid.getKey());
             }
         });
