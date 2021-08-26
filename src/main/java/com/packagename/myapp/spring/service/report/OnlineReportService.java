@@ -144,13 +144,13 @@ public class OnlineReportService {
     }
 
     public void createReportWithBuyRegion(String value) {
-        Integer year1 = 2019;
-        Integer year2 = 2020;
-        Integer halfYear = 2;
-        /*String endDate1 = "2020-06-01 00:00:01";
-        String endDate2 = "2021-06-01 00:00:01";*/
-        String endDate1 = null;
-        String endDate2 = null;
+        Integer year1 = 2021;
+        Integer year2 = 2022;
+        Integer halfYear = 1;
+        String endDate1 = "2020-08-01 00:00:01";
+        String endDate2 = "2021-08-01 00:00:01";
+        /*String endDate1 = null;
+        String endDate2 = null;*/
 
         System.out.println("Start ReportWithBuyRegion");
 
@@ -223,7 +223,7 @@ public class OnlineReportService {
 
     public void createReportOnlineTopPublications(String value) {
         Integer year1 = 2021;
-        Integer halfYear = 1;
+        Integer halfYear = 2;
 
         List<OnlineSubscription> subscriptions = prepareOnlineSubs(value.equals(""), year1, null, halfYear, null, null);
         Map<String, List<OnlineSubscription>> onlineSubscriptionMap = subscriptions.stream()
@@ -342,8 +342,8 @@ public class OnlineReportService {
         Integer year1 = 2020;
         Integer year2 = 2021;
         Integer halfYear = 2;
-        String endDate1 = "2020-06-01 00:00:01";
-        String endDate2 = "2021-06-01 00:00:01";
+        String endDate1 = "2020-08-01 00:00:01";
+        String endDate2 = "2021-08-01 00:00:01";
         /*String endDate1 = null;
         String endDate2 = null;*/
 

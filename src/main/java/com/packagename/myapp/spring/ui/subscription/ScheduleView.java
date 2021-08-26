@@ -31,6 +31,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Route("schedule")
 public class ScheduleView extends VerticalLayout {
@@ -99,7 +100,93 @@ public class ScheduleView extends VerticalLayout {
         findAllFederalAndLocalPublishers.addClickListener(click -> {
             findAllPublishersByType();
         });
-        add(upload, changeDates, forAllPublisherButton, withoutScheduleReport, findAllFederalAndLocalPublishers);
+        Button changeSchedule = new Button("Change schedule");
+        changeSchedule.addClickListener(click -> {
+            changeSelectedSchedule();
+        });
+        add(upload, changeDates, forAllPublisherButton, withoutScheduleReport, findAllFederalAndLocalPublishers,
+                changeSchedule);
+    }
+
+    private void changeSelectedSchedule() {
+        int year = 2021;
+        int halfYear = 2;
+        int genDate = 25;
+        int ufpsDate = 24;
+        List<String> publishers = Stream.of("16f8bc26-b008-40de-a46e-a8bb3e7d8898").collect(Collectors.toList());
+        if (halfYear == 1) {
+            List<String> months = Stream.of("FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE").collect(Collectors.toList());
+            publishers.forEach(publisher -> {
+                requestForChangingSchedule( (year - 1) + "-12-" + genDate,
+                        (year - 1) + "-12-" + ufpsDate, publisher, "MAIN", "null", year, halfYear);
+                for (int i = 1; i < 6; i++) {
+                    if (i == 2 && genDate > 28) {
+                        requestForChangingSchedule(year + "-0" + i + "-28",
+                                year + "-0" + i + "-27", publisher,
+                                "CURRENT", "\"" + months.get(i - 1) + "\"", year, halfYear);
+                    } else {
+                        requestForChangingSchedule(year + "-0" + i + "-" + genDate,
+                                year + "-0" + i + "-" + ufpsDate, publisher,
+                                "CURRENT","\"" + months.get(i - 1) + "\"", year, halfYear);
+                    }
+                }
+            });
+        } else {
+            List<String> months = Stream.of("AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER").collect(Collectors.toList());
+            publishers.forEach(publisher -> {
+                requestForChangingSchedule( year + "-06-" + genDate,
+                        year  + "-06-" + ufpsDate, publisher, "MAIN", "null", year, halfYear);
+                for (int i = 7; i < 12; i++) {
+                    if (i > 9) {
+                        requestForChangingSchedule(year + "-" + i + "-" + genDate,
+                                year + "-" + i + "-" + ufpsDate, publisher,
+                                "CURRENT","\"" + months.get(i - 7) + "\"", year, halfYear);
+                    } else {
+                        requestForChangingSchedule(year + "-0" + i + "-" + genDate,
+                                year + "-0" + i + "-" + ufpsDate, publisher,
+                                "CURRENT","\"" + months.get(i - 7) + "\"", year, halfYear);
+                    }
+                }
+            });
+        }
+
+    }
+
+    private void requestForChangingSchedule(String dateGeneration, String dateUfps, String publisherHid,
+                                            String campaignType, String month, int year, int halfYear) {
+        try (CloseableHttpClient httpclient = HttpClients.createDefault()) {
+            HttpPut httpPut = new HttpPut("http://subs-tictac-service.russianpost.ru/api/v1.0/schedule/date/novalidation/iknowwhatiamdoing");
+            httpPut.setHeader("Content-type", "application/json");
+            httpPut.setHeader("hid", "15621057-10cf-4788-b9d8-f71006e887fb");
+            String json = "{\n" +
+                    "  \"dates\": {\n" +
+                    "     \"CONTRACT_GENERATION\":\"" + dateGeneration + "\",\n" +
+                    "     \"TCFPS\": \"" + dateUfps + "\"" +
+                    "   },\n" +
+                    "  \"publisherId\": \"" + publisherHid + "\",\n" +
+                    "  \"year\": " + year + ",\n" +
+                    "  \"halfYear\": " + halfYear + ",\n" +
+                    "  \"campaignType\": \"" + campaignType + "\",\n" +
+                    "  \"month\": " + month + "\n" +
+                    "}";
+            StringEntity stringEntity = new StringEntity(json);
+            httpPut.setEntity(stringEntity);
+            ResponseHandler<String> responseHandler = response -> {
+                int status = response.getStatusLine().getStatusCode();
+                if (status >= 200 && status < 300) {
+                    HttpEntity entity = response.getEntity();
+                    return entity != null ? EntityUtils.toString(entity) : null;
+                } else {
+                    System.out.println("Error");
+                }
+                return null;
+            };
+            String responseBody = httpclient.execute(httpPut, responseHandler);
+            System.out.println(String.format("%s changed %s", publisherHid, month));
+        } catch (IOException e) {
+            System.err.println(e);
+        }
+
     }
 
     private void findAllPublishersByType() {
