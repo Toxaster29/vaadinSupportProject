@@ -147,8 +147,8 @@ public class OnlineReportService {
         Integer year1 = 2021;
         Integer year2 = 2022;
         Integer halfYear = 1;
-        String endDate1 = "2020-08-01 00:00:01";
-        String endDate2 = "2021-08-01 00:00:01";
+        String endDate1 = "2020-12-01 00:00:01";
+        String endDate2 = "2021-12-01 00:00:01";
         /*String endDate1 = null;
         String endDate2 = null;*/
 
@@ -339,11 +339,11 @@ public class OnlineReportService {
     }
 
     public void createOnlineReportByRegionReceiving(String value) {
-        Integer year1 = 2020;
-        Integer year2 = 2021;
-        Integer halfYear = 2;
-        String endDate1 = "2020-08-01 00:00:01";
-        String endDate2 = "2021-08-01 00:00:01";
+        Integer year1 = 2021;
+        Integer year2 = 2022;
+        Integer halfYear = 1;
+        String endDate1 = "2020-12-01 00:00:01";
+        String endDate2 = "2021-12-01 00:00:01";
         /*String endDate1 = null;
         String endDate2 = null;*/
 

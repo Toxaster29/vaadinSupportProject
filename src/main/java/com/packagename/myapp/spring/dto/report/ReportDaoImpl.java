@@ -70,7 +70,7 @@ public class ReportDaoImpl implements ReportDao {
             "            \" where year > 2016 and year < 2020 order by year, \"half\"";
 
     private static String GET_CATALOG_PERIOD_LIST_FOR_YEAR = "SELECT year, \"half\", id FROM public.catalog_period" +
-            " where year = %s order by year, \"half\"";
+            " where year = %s order by year, \"half\" "; //and "type" in ('MAIN','EARLY')
 
     private static String GET_SUBSCRIPTION_BY_PUBLISHER = "SELECT b.region_code, s.publisher_id, s.publication_code, " +
             "s.catalogue_id, s.min_subs_period, alloc_by_msp\n" +
